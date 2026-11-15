@@ -1,6 +1,6 @@
 {
   "name": "sipkit-core",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Framework-agnostic, embeddable SIP softphone for the browser (SIP.js over WebRTC) with typed state, events and plugins",
   "keywords": [
     "sip",
