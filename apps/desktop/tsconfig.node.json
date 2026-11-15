@@ -1,0 +1,18 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "lib": ["ES2022"],
+    "types": ["node"],
+    "paths": {
+      "sipkit-core": ["../../packages/core/dist/index.d.ts", "../../packages/core/src/index.ts"]
+    }
+  },
+  "include": [
+    "src/main",
+    "src/preload",
+    "src/shared",
+    "electron.vite.config.ts",
+    "vitest.config.ts"
+  ]
+}

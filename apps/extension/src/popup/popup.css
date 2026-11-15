@@ -1,0 +1,68 @@
+/* Popup frame around the sipkit-ui widget (which brings its own theme tokens). */
+:root {
+  color-scheme: light dark;
+  --ext-bg: #ffffff;
+  --ext-fg: #0f172a;
+  --ext-muted: #64748b;
+  --ext-border: #e2e8f0;
+  --ext-accent: #2563eb;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --ext-bg: #0b1220;
+    --ext-fg: #e2e8f0;
+    --ext-muted: #94a3b8;
+    --ext-border: #1e293b;
+    --ext-accent: #60a5fa;
+  }
+}
+html,
+body {
+  margin: 0;
+  background: var(--ext-bg);
+  color: var(--ext-fg);
+  font: 13px/1.4 system-ui, sans-serif;
+}
+body {
+  width: 380px;
+  min-height: 560px;
+}
+.ext-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding-block: 6px;
+  padding-inline: 12px;
+  border-block-end: 1px solid var(--ext-border);
+  font-size: 12px;
+  color: var(--ext-muted);
+}
+.ext-bar .ext-grow {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.ext-bar button {
+  border: 1px solid var(--ext-border);
+  background: transparent;
+  color: var(--ext-fg);
+  border-radius: 6px;
+  padding-block: 2px;
+  padding-inline: 8px;
+  font: inherit;
+  cursor: pointer;
+}
+.ext-bar button:hover {
+  border-color: var(--ext-accent);
+}
+.ext-widget {
+  height: 600px;
+}
+.ext-message {
+  padding-block: 24px;
+  padding-inline: 16px;
+  text-align: center;
+  color: var(--ext-muted);
+}

@@ -1,0 +1,271 @@
+/*
+ * sipkit-ui styles.
+ *
+ * - Tailwind v4 theme + utilities only. Tailwind's global preflight is NOT
+ *   included; a reset scoped to `.sipkit-phone` replaces it so the widget
+ *   never restyles the host CRM page.
+ * - Design tokens are CSS variables declared on `:where(.sipkit-phone)`
+ *   (zero specificity). Their values come from src/theme/tokens.ts (the
+ *   generated block below). Hosts override them with the `--sipkit-*` variables
+ *   from anywhere up the tree (works through the Shadow DOM of
+ *   <sipkit-phone>); `--sipkit-dark-*` applies to the dark theme only:
+ *     sipkit-phone, .my-crm { --sipkit-primary: #0f766e; --sipkit-radius: 0.5rem; }
+ *   See docs/theming.md.
+ */
+@layer theme, base, components, utilities;
+@import 'tailwindcss/theme.css' layer(theme);
+@import 'tailwindcss/utilities.css' layer(utilities);
+@import 'tw-animate-css';
+@import 'sonner/dist/styles.css';
+
+@source './';
+
+@custom-variant dark (&:where([data-theme='dark'], [data-theme='dark'] *));
+
+@theme inline {
+  --font-sans: var(--sipkit-font-sans, 'Inter', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif);
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-success: var(--success);
+  --color-success-foreground: var(--success-foreground);
+  --color-warning: var(--warning);
+  --color-warning-foreground: var(--warning-foreground);
+  --color-call-accept: var(--call-accept);
+  --color-call-accept-foreground: var(--call-accept-foreground);
+  --color-call-end: var(--call-end);
+  --color-call-end-foreground: var(--call-end-foreground);
+  --color-overlay: var(--overlay);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --radius-2xl: calc(var(--radius) + 8px);
+
+  --animate-ring-pulse: sipkit-ring-pulse 1.6s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  --animate-wiggle: sipkit-wiggle 1.2s ease-in-out infinite;
+}
+
+@keyframes sipkit-ring-pulse {
+  0% {
+    box-shadow: 0 0 0 0 color-mix(in oklab, var(--call-accept) 55%, transparent);
+  }
+  70% {
+    box-shadow: 0 0 0 14px color-mix(in oklab, var(--call-accept) 0%, transparent);
+  }
+  100% {
+    box-shadow: 0 0 0 0 color-mix(in oklab, var(--call-accept) 0%, transparent);
+  }
+}
+
+@keyframes sipkit-wiggle {
+  0%,
+  60%,
+  100% {
+    transform: rotate(0);
+  }
+  10%,
+  30%,
+  50% {
+    transform: rotate(-12deg);
+  }
+  20%,
+  40% {
+    transform: rotate(12deg);
+  }
+}
+
+/* ---------------------------------------------------------------- tokens */
+
+/* <sipkit-tokens> generated from src/theme/tokens.ts by `pnpm gen:tokens`; do not edit */
+:where(.sipkit-phone) {
+  --radius: var(--sipkit-radius, 0.75rem);
+  --background: var(--sipkit-background, oklch(1 0 0));
+  --foreground: var(--sipkit-foreground, oklch(0.21 0.03 264.7));
+  --card: var(--sipkit-card, oklch(1 0 0));
+  --card-foreground: var(--sipkit-card-foreground, oklch(0.21 0.03 264.7));
+  --popover: var(--sipkit-popover, oklch(1 0 0));
+  --popover-foreground: var(--sipkit-popover-foreground, oklch(0.21 0.03 264.7));
+  --primary: var(--sipkit-primary, oklch(0.53 0.2 262));
+  --primary-foreground: var(--sipkit-primary-foreground, oklch(0.985 0.01 260));
+  --secondary: var(--sipkit-secondary, oklch(0.967 0.007 264.5));
+  --secondary-foreground: var(--sipkit-secondary-foreground, oklch(0.21 0.03 264.7));
+  --muted: var(--sipkit-muted, oklch(0.967 0.007 264.5));
+  --muted-foreground: var(--sipkit-muted-foreground, oklch(0.5 0.025 264.4));
+  --accent: var(--sipkit-accent, oklch(0.955 0.014 262));
+  --accent-foreground: var(--sipkit-accent-foreground, oklch(0.3 0.08 262));
+  --destructive: var(--sipkit-destructive, oklch(0.55 0.21 26));
+  --destructive-foreground: var(--sipkit-destructive-foreground, oklch(0.985 0 0));
+  --success: var(--sipkit-success, oklch(0.49 0.13 152));
+  --success-foreground: var(--sipkit-success-foreground, oklch(0.985 0 0));
+  --warning: var(--sipkit-warning, oklch(0.77 0.16 70));
+  --warning-foreground: var(--sipkit-warning-foreground, oklch(0.38 0.09 50));
+  --call-accept: var(--sipkit-call-accept, var(--success));
+  --call-accept-foreground: var(--sipkit-call-accept-foreground, var(--success-foreground));
+  --call-end: var(--sipkit-call-end, var(--destructive));
+  --call-end-foreground: var(--sipkit-call-end-foreground, var(--destructive-foreground));
+  --border: var(--sipkit-border, oklch(0.925 0.009 264.5));
+  --input: var(--sipkit-input, oklch(0.88 0.01 264.5));
+  --ring: var(--sipkit-ring, color-mix(in oklab, var(--primary) 60%, transparent));
+  --overlay: var(--sipkit-overlay, oklch(0 0 0 / 45%));
+}
+
+:where(.sipkit-phone[data-theme='dark']) {
+  --radius: var(--sipkit-dark-radius, var(--sipkit-radius, 0.75rem));
+  --background: var(--sipkit-dark-background, var(--sipkit-background, oklch(0.17 0.02 265)));
+  --foreground: var(--sipkit-dark-foreground, var(--sipkit-foreground, oklch(0.96 0.006 264.5)));
+  --card: var(--sipkit-dark-card, var(--sipkit-card, oklch(0.205 0.022 265)));
+  --card-foreground: var(--sipkit-dark-card-foreground, var(--sipkit-card-foreground, oklch(0.96 0.006 264.5)));
+  --popover: var(--sipkit-dark-popover, var(--sipkit-popover, oklch(0.225 0.024 265)));
+  --popover-foreground: var(--sipkit-dark-popover-foreground, var(--sipkit-popover-foreground, oklch(0.96 0.006 264.5)));
+  --primary: var(--sipkit-dark-primary, var(--sipkit-primary, oklch(0.68 0.16 262)));
+  --primary-foreground: var(--sipkit-dark-primary-foreground, var(--sipkit-primary-foreground, oklch(0.18 0.03 265)));
+  --secondary: var(--sipkit-dark-secondary, var(--sipkit-secondary, oklch(0.27 0.025 265)));
+  --secondary-foreground: var(--sipkit-dark-secondary-foreground, var(--sipkit-secondary-foreground, oklch(0.96 0.006 264.5)));
+  --muted: var(--sipkit-dark-muted, var(--sipkit-muted, oklch(0.26 0.022 265)));
+  --muted-foreground: var(--sipkit-dark-muted-foreground, var(--sipkit-muted-foreground, oklch(0.72 0.02 264.4)));
+  --accent: var(--sipkit-dark-accent, var(--sipkit-accent, oklch(0.29 0.04 262)));
+  --accent-foreground: var(--sipkit-dark-accent-foreground, var(--sipkit-accent-foreground, oklch(0.93 0.03 262)));
+  --destructive: var(--sipkit-dark-destructive, var(--sipkit-destructive, oklch(0.68 0.19 22)));
+  --destructive-foreground: var(--sipkit-dark-destructive-foreground, var(--sipkit-destructive-foreground, oklch(0.17 0.03 22)));
+  --success: var(--sipkit-dark-success, var(--sipkit-success, oklch(0.72 0.15 152)));
+  --success-foreground: var(--sipkit-dark-success-foreground, var(--sipkit-success-foreground, oklch(0.16 0.03 152)));
+  --warning: var(--sipkit-dark-warning, var(--sipkit-warning, oklch(0.8 0.15 75)));
+  --warning-foreground: var(--sipkit-dark-warning-foreground, var(--sipkit-warning-foreground, oklch(0.25 0.06 46)));
+  --call-accept: var(--sipkit-dark-call-accept, var(--sipkit-call-accept, var(--success)));
+  --call-accept-foreground: var(--sipkit-dark-call-accept-foreground, var(--sipkit-call-accept-foreground, var(--success-foreground)));
+  --call-end: var(--sipkit-dark-call-end, var(--sipkit-call-end, var(--destructive)));
+  --call-end-foreground: var(--sipkit-dark-call-end-foreground, var(--sipkit-call-end-foreground, var(--destructive-foreground)));
+  --border: var(--sipkit-dark-border, var(--sipkit-border, oklch(1 0 0 / 10%)));
+  --input: var(--sipkit-dark-input, var(--sipkit-input, oklch(1 0 0 / 16%)));
+  --ring: var(--sipkit-dark-ring, var(--sipkit-ring, color-mix(in oklab, var(--primary) 60%, transparent)));
+  --overlay: var(--sipkit-dark-overlay, var(--sipkit-overlay, oklch(0 0 0 / 60%)));
+}
+/* </sipkit-tokens> */
+
+/* ------------------------------------------------- scoped reset (no preflight) */
+
+@layer base {
+  :where(.sipkit-phone),
+  :where(.sipkit-phone) *,
+  :where(.sipkit-phone) ::before,
+  :where(.sipkit-phone) ::after {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    border: 0 solid var(--border);
+  }
+
+  :where(.sipkit-phone) {
+    font-family: var(--font-sans);
+    font-size: 14px;
+    line-height: 1.5;
+    color: var(--foreground);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-align: left;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  :where(.sipkit-phone) :where(button, input, select, textarea, optgroup) {
+    font: inherit;
+    font-feature-settings: inherit;
+    letter-spacing: inherit;
+    color: inherit;
+    background-color: transparent;
+    border-radius: 0;
+    opacity: 1;
+  }
+
+  :where(.sipkit-phone) :where(button, [role='button'], [role='tab']) {
+    cursor: pointer;
+    appearance: none;
+  }
+
+  :where(.sipkit-phone) :where(:disabled) {
+    cursor: not-allowed;
+  }
+
+  :where(.sipkit-phone) :where(h1, h2, h3, h4, h5, h6) {
+    font-size: inherit;
+    font-weight: inherit;
+  }
+
+  :where(.sipkit-phone) :where(ol, ul, menu) {
+    list-style: none;
+  }
+
+  :where(.sipkit-phone) :where(a) {
+    color: inherit;
+    text-decoration: inherit;
+  }
+
+  :where(.sipkit-phone) :where(img, svg, video, canvas) {
+    display: block;
+    vertical-align: middle;
+  }
+
+  :where(.sipkit-phone) :where(input, textarea)::placeholder {
+    color: var(--muted-foreground);
+    opacity: 1;
+  }
+
+  :where(.sipkit-phone) :where(table) {
+    border-collapse: collapse;
+  }
+
+  :where(.sipkit-phone) :where([hidden]:not([hidden='until-found'])) {
+    display: none !important;
+  }
+}
+
+/* ------------------------------------------- toasts stay inside the widget */
+
+.sipkit-phone [data-sonner-toaster] {
+  position: absolute;
+  --width: min(356px, calc(100% - 24px)) !important;
+  --offset-top: 64px !important;
+  --mobile-offset-top: 64px !important;
+  --mobile-offset-left: 12px !important;
+  --mobile-offset-right: 12px !important;
+  font-family: var(--font-sans);
+}
+
+/* Sonner rich colours, driven by the softphone tokens instead of sonner's own palette. */
+.sipkit-phone [data-sonner-toaster][data-theme] {
+  --success-bg: color-mix(in oklab, var(--success) 14%, var(--popover));
+  --success-border: color-mix(in oklab, var(--success) 35%, var(--popover));
+  --success-text: var(--success);
+  --error-bg: color-mix(in oklab, var(--destructive) 10%, var(--popover));
+  --error-border: color-mix(in oklab, var(--destructive) 35%, var(--popover));
+  --error-text: var(--destructive);
+  --warning-bg: color-mix(in oklab, var(--warning) 18%, var(--popover));
+  --warning-border: color-mix(in oklab, var(--warning) 45%, var(--popover));
+  --warning-text: var(--warning-foreground);
+  --info-bg: color-mix(in oklab, var(--primary) 8%, var(--popover));
+  --info-border: color-mix(in oklab, var(--primary) 35%, var(--popover));
+  --info-text: var(--primary);
+}
+
+.sipkit-phone[data-theme='dark'] [data-sonner-toaster][data-theme] {
+  --warning-text: var(--warning);
+}

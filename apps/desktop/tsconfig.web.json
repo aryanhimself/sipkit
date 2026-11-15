@@ -1,0 +1,17 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "jsx": "react-jsx",
+    "noEmit": true,
+    "types": ["vite/client"],
+    "paths": {
+      "@/*": ["../../packages/ui/src/*"],
+      "sipkit-core": ["../../packages/core/dist/index.d.ts", "../../packages/core/src/index.ts"],
+      "sipkit-core/testing": ["../../packages/core/dist/testing/index.d.ts", "../../packages/core/src/testing/index.ts"],
+      "sipkit-react": ["../../packages/react/src/index.ts"],
+      "sipkit-react/testing": ["../../packages/react/src/testing/index.ts"],
+      "sipkit-ui": ["../../packages/ui/src/index.ts"]
+    }
+  },
+  "include": ["src/renderer", "src/shared"]
+}

@@ -1,0 +1,13 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "jsx": "react-jsx",
+    "outDir": "dist",
+    "types": [],
+    "paths": {
+      "sipkit-core": ["../core/dist/index.d.ts", "../core/src/index.ts"],
+      "sipkit-core/testing": ["../core/dist/testing/index.d.ts", "../core/src/testing/index.ts"]
+    }
+  },
+  "include": ["src", "vitest.config.ts", "tsup.config.ts"]
+}

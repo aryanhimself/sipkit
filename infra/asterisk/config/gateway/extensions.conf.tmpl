@@ -1,0 +1,180 @@
+; Gateway dialplan (template: only the variables whitelisted in entrypoint.sh
+; are substituted; Asterisk variables such as ${EXTEN} are left untouched).
+[general]
+static=yes
+writeprotect=yes
+
+; Browser -> upstream: send everything the browser dials to the upstream PBX.
+[from-browser]
+exten => _[0-9*#+].,1,NoOp(Browser ${CALLERID(num)} -> upstream ${EXTEN})
+ same => n,Set(CALLERID(num)=${UPSTREAM_USER})
+ ; Carry selected X- headers from the browser leg (e.g. X-Sipkit-Crm-Id) - uncomment to use:
+ ; same => n,Set(__CRM_ID=${PJSIP_HEADER(read,X-Sipkit-Crm-Id)})
+ ; Reload-safe calls (docs/resume.md): X-Sipkit-Anchor anchors the call in a ConfBridge here.
+ same => n,Gosub(sipkit-anchor,setup,1(${CHANNEL(endpoint)}))
+ same => n,Dial(PJSIP/${EXTEN}@upstream,90,tT${ANCHOR_OPTS})
+ same => n,GotoIf($["${DIALSTATUS}" = "BUSY"]?busy)
+ same => n,Hangup()
+ same => n(busy),Busy(5)
+
+; Reload-safe calls (docs/resume.md): *85<id> rejoins anchor <id>, *86<id> ends it.
+exten => _*85X.,1,NoOp(Rejoin anchor ${EXTEN:3} by ${CHANNEL(endpoint)})
+ same => n,Set(ID=${FILTER(0-9,${EXTEN:3})})
+ same => n,GotoIf($["${DB(ANCHOR/${ID}/agent)}" != "${CHANNEL(endpoint)}"]?gone)
+ same => n,GotoIf($["${DB(ANCHOR/${ID}/ended)}" = "1"]?gone)
+ same => n,Answer()
+ same => n,Goto(sipkit-anchor-agent,${ID},1)
+ same => n(gone),NoOp(Anchor ${ID} is gone)
+ same => n,Hangup(1)
+
+exten => _*86X.,1,NoOp(End anchor ${EXTEN:3} by ${CHANNEL(endpoint)})
+ same => n,Set(ID=${FILTER(0-9,${EXTEN:3})})
+ same => n,GotoIf($["${DB(ANCHOR/${ID}/agent)}" != "${CHANNEL(endpoint)}"]?gone)
+ same => n,Set(DB(ANCHOR/${ID}/ended)=1)
+ same => n,Set(PARTY=${DB(ANCHOR/${ID}/party)})
+ same => n,ExecIf($["${PARTY}" != ""]?ChannelRedirect(${PARTY},sipkit-anchor-bye,s,1))
+ same => n,Answer()
+ same => n,Hangup()
+ same => n(gone),Hangup(1)
+
+; Local gateway test number (does not touch the upstream).
+exten => 600,1,Answer()
+ same => n,Playback(demo-echotest)
+ same => n,Echo()
+ same => n,Hangup()
+
+; Upstream -> browser: calls to the registered upstream account ring the browser.
+[from-upstream]
+exten => ${UPSTREAM_USER},1,NoOp(Upstream call from ${CALLERID(num)} -> browser ${GW_BROWSER_USER})
+ same => n,Gosub(sipkit-anchor,setup,1(${GW_BROWSER_USER}))
+ same => n,Dial(PJSIP/${GW_BROWSER_USER},60,tTb(sipkit-anchor-header^s^1)${ANCHOR_OPTS})
+ same => n,GotoIf($["${DIALSTATUS}" = "BUSY"]?busy)
+ same => n,Hangup()
+ same => n(busy),Busy(5)
+
+; Some PBXs send the request-URI with the DID or with "s"; route those too.
+exten => _[0-9a-zA-Z+*#].,1,Goto(from-upstream,${UPSTREAM_USER},1)
+exten => s,1,Goto(from-upstream,${UPSTREAM_USER},1)
+
+; ---------------------------------------------------------------- reload-safe calls (V2-RESUME-01)
+; Same anchor rooms as the dev PBX (infra/asterisk/config/pbx/extensions.conf), on the
+; gateway: the browser leg is the one that drops on a reload, so the room lives where
+; that leg ends. No voicemail here: the fallback hangs up (the upstream PBX sees a normal
+; hangup and can run its own no-answer logic).
+[sipkit-anchor-header]
+exten => s,1,ExecIf($["${SIPKIT_ANCHOR_IN}" != ""]?Set(PJSIP_HEADER(add,X-Sipkit-Anchor)=${SIPKIT_ANCHOR_IN}))
+ same => n,Return()
+
+[sipkit-anchor]
+exten => setup,1,Set(ANCHOR_OPTS=)
+ same => n,Set(OUT=${FILTER(0-9,${PJSIP_HEADER(read,X-Sipkit-Anchor)})})
+ same => n,GotoIf($[${LEN(${OUT})} >= 6]?out)
+ same => n,Set(CONTACTS=${PJSIP_DIAL_CONTACTS(${ARG1})})
+ same => n,GotoIf($["${CONTACTS}" = ""]?done)
+ same => n,Set(MARK=${STRREPLACE(CONTACTS,sipkit-resume=,~)})
+ same => n,GotoIf($["${MARK}" = "${CONTACTS}"]?done)
+ same => n,Set(T=${CUT(MARK,~,2)})
+ same => n,Set(T=${CUT(T,\;,1)})
+ same => n,Set(T=${CUT(T,>,1)})
+ same => n,Set(ID=${CUT(UNIQUEID,.,1)}${CUT(UNIQUEID,.,2)})
+ same => n,Set(DB(ANCHOR/${ID}/agent)=${ARG1})
+ same => n,Gosub(timeout,1(${ID},${T}))
+ same => n,Set(__SIPKIT_ANCHOR_IN=${ID})
+ same => n,Set(ANCHOR_OPTS=G(sipkit-anchor-in^${ID}^1))
+ same => n,Goto(done)
+ same => n(out),Set(DB(ANCHOR/${OUT}/agent)=${CHANNEL(endpoint)})
+ same => n,Gosub(timeout,1(${OUT},${PJSIP_HEADER(read,X-Sipkit-Anchor-Timeout)}))
+ same => n,Set(ANCHOR_OPTS=G(sipkit-anchor-out^${OUT}^1))
+ same => n(done),Return()
+
+; Rejoin timeout in seconds: 5..300, default 30.
+exten => timeout,1,Set(T=${FILTER(0-9,${ARG2})})
+ same => n,ExecIf($["${T}" = ""]?Set(T=30))
+ same => n,ExecIf($[${T} < 5]?Set(T=5))
+ same => n,ExecIf($[${T} > 300]?Set(T=300))
+ same => n,Set(DB(ANCHOR/${ARG1}/timeout)=${T})
+ same => n,Return()
+
+; Dial G(): the caller continues at priority 1, the called party at priority 2.
+[sipkit-anchor-in]
+exten => _X.,1,Goto(sipkit-anchor-party,${EXTEN},1)
+ same => n,Goto(sipkit-anchor-agent,${EXTEN},1)
+
+[sipkit-anchor-out]
+exten => _X.,1,Goto(sipkit-anchor-agent,${EXTEN},1)
+ same => n,Goto(sipkit-anchor-party,${EXTEN},1)
+
+[sipkit-anchor-agent]
+exten => _X.,1,NoOp(Agent ${CHANNEL(endpoint)} joins anchor ${EXTEN})
+ same => n,Set(DB(ANCHOR/${EXTEN}/agentchan)=${CHANNEL(name)})
+ ; Inbound legs (outgoing call, *85 rejoin): the WebSocket's ip:port. Outbound legs
+ ; (answered incoming call): the URI of the contact the call was sent to.
+ same => n,Set(KEY=${CHANNEL(pjsip,remote_addr)})
+ same => n,ExecIf($["${KEY}" = "" & "${CHANNEL(contact)}" != ""]?Set(KEY=${PJSIP_CONTACT(${CHANNEL(contact)},uri)}))
+ same => n,Set(DB(ANCHOR/${EXTEN}/agentaddr)=${KEY})
+ ; Watch this leg: Asterisk keeps a call up when the browser's WebSocket closes, so
+ ; [sipkit-anchor-watch] hangs the leg up as soon as its contact is gone (page unloaded).
+ same => n,Originate(Local/${EXTEN}@sipkit-anchor-watch/n,app,Wait,86400,5,a)
+ same => n,ConfBridge(sipkit-${EXTEN},sipkit_bridge,sipkit_anchor_agent)
+ same => n,Hangup()
+
+; One watcher per agent leg (a Local channel that answers itself and polls every second).
+; The leg's WebSocket address (ip:port) disappears from the endpoint's contacts the moment
+; the browser's WebSocket closes (registrar transport monitor): then the leg is dead and is
+; hung up, so the customer leaves the room and the rejoin timeout starts. A newer leg (rejoin)
+; or the end of the anchor stops the watcher.
+[sipkit-anchor-watch]
+exten => _X.,1,Answer()
+ same => n,Set(ID=${EXTEN})
+ same => n,Set(CHAN=${DB(ANCHOR/${ID}/agentchan)})
+ same => n,Set(ADDR=${DB(ANCHOR/${ID}/agentaddr)})
+ same => n,Set(AGENT=${DB(ANCHOR/${ID}/agent)})
+ same => n,GotoIf($["${CHAN}" = "" | "${ADDR}" = ""]?done)
+ same => n(loop),Wait(1)
+ same => n,GotoIf($["${DB(ANCHOR/${ID}/agentchan)}" != "${CHAN}"]?done)
+ same => n,Set(CONTACTS=${PJSIP_DIAL_CONTACTS(${AGENT})})
+ same => n,GotoIf($["${STRREPLACE(CONTACTS,${ADDR},~)}" != "${CONTACTS}"]?loop)
+ same => n,NoOp(Agent leg ${CHAN} lost its contact ${ADDR}: hanging it up)
+ same => n,SoftHangup(${CHAN})
+ same => n(done),Hangup()
+
+[sipkit-anchor-party]
+exten => _X.,1,NoOp(Customer ${CALLERID(num)} anchored in ${EXTEN})
+ same => n,Set(ID=${EXTEN})
+ same => n,Set(ROOM=sipkit-${ID})
+ same => n,Set(DB(ANCHOR/${ID}/party)=${CHANNEL(name)})
+ same => n,Set(CHANNEL(hangup_handler_push)=sipkit-anchor-hangup,s,1(${ID}))
+ same => n,Set(TIMEOUT_S=${DB(ANCHOR/${ID}/timeout)})
+ same => n,ExecIf($["${TIMEOUT_S}" = ""]?Set(TIMEOUT_S=30))
+ same => n(join),ConfBridge(${ROOM},sipkit_bridge,sipkit_anchor_party)
+ ; Out of the room: the agent's last leg is gone (end_marked), or the call was ended.
+ same => n,Wait(0.6)
+ same => n,GotoIf($["${DB(ANCHOR/${ID}/ended)}" = "1"]?bye)
+ same => n,NoOp(Agent left anchor ${ID}: waiting up to ${TIMEOUT_S}s for a rejoin)
+ same => n,Set(WAITED=0)
+ same => n,StartMusicOnHold(default)
+ same => n(wait),GotoIf($["${DB(ANCHOR/${ID}/ended)}" = "1"]?bye)
+ same => n,GotoIf($[0${CONFBRIDGE_INFO(parties,${ROOM})} > 0]?back)
+ same => n,GotoIf($[${WAITED} >= ${TIMEOUT_S} * 2]?fallback)
+ same => n,Wait(0.5)
+ same => n,Set(WAITED=$[${WAITED} + 1])
+ same => n,Goto(wait)
+ same => n(back),StopMusicOnHold()
+ same => n,NoOp(Agent is back in anchor ${ID})
+ same => n,Goto(join)
+ same => n(fallback),StopMusicOnHold()
+ same => n,NoOp(No agent came back to anchor ${ID}: fallback)
+ same => n,Set(DB(ANCHOR/${ID}/ended)=1)
+ same => n(bye),Hangup()
+
+; The agent hung up for real (*86): end the customer's leg too.
+[sipkit-anchor-bye]
+exten => s,1,Hangup()
+
+; Hangup handler of the customer's channel: end the agent's (latest) leg and forget the anchor.
+[sipkit-anchor-hangup]
+exten => s,1,NoOp(Anchor ${ARG1} closed)
+ same => n,Set(AGENTCHAN=${DB(ANCHOR/${ARG1}/agentchan)})
+ same => n,DBdeltree(ANCHOR/${ARG1})
+ same => n,ExecIf($["${AGENTCHAN}" != ""]?SoftHangup(${AGENTCHAN}))
+ same => n,Return()

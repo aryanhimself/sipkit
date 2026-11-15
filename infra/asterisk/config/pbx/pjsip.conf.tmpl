@@ -1,0 +1,156 @@
+; =============================================================================
+; Dev PBX - PJSIP
+;   1001, 1002  WebRTC (SIP over WSS, DTLS-SRTP, ICE)  -> browser softphone (audio + VP8/H.264 video)
+;   1003        WebRTC, third party for BLF / pickup tests (no mailbox)
+;   2001, 2002  plain SIP over UDP 5060                -> Zoiper / desk phone
+;   2099        plain SIP account used by the "gateway" profile as its upstream
+; Password for every dev account: ${DEV_SIP_PASSWORD}  (set in .env)
+; Voicemail/MWI: mailbox <ext>@default (voicemail.conf) on users 1001-2002.
+;   endpoint mailboxes = unsolicited NOTIFY; aor mailboxes = SUBSCRIBE allowed;
+;   a SUBSCRIBE replaces the unsolicited NOTIFYs. Message-Account = *97.
+; BLF / presence: endpoints may SUBSCRIBE to dialog / presence; hints live in
+;   subscribe_context (extensions.conf pattern hints _1XXX / _2XXX).
+; Chat (SIP MESSAGE): every user endpoint has message_context=messages, see
+;   [messages] in extensions.conf (res_pjsip_messaging + MessageSend).
+; =============================================================================
+
+[global]
+type=global
+user_agent=sipkit-dev-pbx
+endpoint_identifier_order=username,ip,anonymous
+
+; ---------------------------------------------------------------- transports
+[transport-udp]
+type=transport
+protocol=udp
+bind=0.0.0.0:5060
+local_net=${LOCAL_NET}
+external_media_address=${EXTERNAL_IP}
+external_signaling_address=${EXTERNAL_IP}
+
+; WSS rides on the HTTPS server configured in http.conf (port 8089, path /ws).
+[transport-wss]
+type=transport
+protocol=wss
+bind=0.0.0.0
+
+; ---------------------------------------------------------------- templates
+[aor-tpl](!)
+type=aor
+max_contacts=5
+remove_existing=yes
+qualify_frequency=30
+
+[auth-tpl](!)
+type=auth
+auth_type=userpass
+password=${DEV_SIP_PASSWORD}
+
+[webrtc-tpl](!)
+type=endpoint
+context=from-internal
+disallow=all
+; opus is used only if codec_opus is installed; ulaw/alaw always work.
+; vp8/h264: 1:1 video calls (V2-VID-01, docs/video.md). Video is passed through
+; (no transcoding), so both browsers negotiate the same codec (VP8 first).
+allow=opus,ulaw,alaw,vp8,h264
+; webrtc=yes implies: use_avpf, media_encryption=dtls, dtls_verify=fingerprint,
+; dtls_setup=actpass, ice_support, media_use_received_transport, rtcp_mux
+webrtc=yes
+; One audio + one video stream per call, all on one BUNDLEd transport.
+bundle=yes
+max_audio_streams=1
+max_video_streams=1
+dtls_auto_generate_cert=yes
+direct_media=no
+rtp_symmetric=yes
+force_rport=yes
+rewrite_contact=yes
+moh_suggest=default
+send_pai=yes
+allow_transfer=yes
+device_state_busy_at=2
+voicemail_extension=*97
+mwi_subscribe_replaces_unsolicited=yes
+allow_subscribe=yes
+subscribe_context=from-internal
+; SIP MESSAGE (chat, V2-CHAT-01): route through [messages] in extensions.conf.
+message_context=messages
+
+[sip-tpl](!)
+type=endpoint
+transport=transport-udp
+context=from-internal
+disallow=all
+allow=ulaw,alaw,g722
+direct_media=no
+rtp_symmetric=yes
+force_rport=yes
+rewrite_contact=yes
+moh_suggest=default
+dtmf_mode=rfc4733
+allow_transfer=yes
+voicemail_extension=*97
+mwi_subscribe_replaces_unsolicited=yes
+allow_subscribe=yes
+subscribe_context=from-internal
+message_context=messages
+
+; ---------------------------------------------------------------- WebRTC users
+[1001](aor-tpl)
+mailboxes=1001@default
+[1001](auth-tpl)
+username=1001
+[1001](webrtc-tpl)
+aors=1001
+auth=1001
+callerid="Agent 1001" <1001>
+mailboxes=1001@default
+
+[1002](aor-tpl)
+mailboxes=1002@default
+[1002](auth-tpl)
+username=1002
+[1002](webrtc-tpl)
+aors=1002
+auth=1002
+callerid="Agent 1002" <1002>
+mailboxes=1002@default
+
+[1003](aor-tpl)
+[1003](auth-tpl)
+username=1003
+[1003](webrtc-tpl)
+aors=1003
+auth=1003
+callerid="Agent 1003" <1003>
+
+; ---------------------------------------------------------------- plain SIP users
+[2001](aor-tpl)
+mailboxes=2001@default
+[2001](auth-tpl)
+username=2001
+[2001](sip-tpl)
+aors=2001
+auth=2001
+callerid="Desk 2001" <2001>
+mailboxes=2001@default
+
+[2002](aor-tpl)
+mailboxes=2002@default
+[2002](auth-tpl)
+username=2002
+[2002](sip-tpl)
+aors=2002
+auth=2002
+callerid="Desk 2002" <2002>
+mailboxes=2002@default
+
+; Account the gateway profile registers with (simulates "your upstream PBX").
+[2099](aor-tpl)
+[2099](auth-tpl)
+username=2099
+[2099](sip-tpl)
+aors=2099
+auth=2099
+callerid="Gateway user" <2099>

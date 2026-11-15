@@ -1,0 +1,34 @@
+{
+  "name": "sipkit-extension",
+  "private": true,
+  "version": "0.1.0",
+  "description": "SipKit browser extension (Chrome + Firefox, Manifest V3): hosts the one softphone instance for all tabs",
+  "type": "module",
+  "scripts": {
+    "build": "pnpm build:chrome && pnpm build:firefox",
+    "build:chrome": "node scripts/build.mjs chrome",
+    "build:firefox": "node scripts/build.mjs firefox",
+    "lint:firefox": "web-ext lint --source-dir dist/firefox --self-hosted",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:e2e": "playwright test"
+  },
+  "devDependencies": {
+    "sipkit-core": "workspace:*",
+    "sipkit-react": "workspace:*",
+    "sipkit-ui": "workspace:*",
+    "@playwright/test": "^1.49.1",
+    "@types/chrome": "^0.0.287",
+    "@types/node": "^22.20.5",
+    "@types/react": "^19.0.2",
+    "@types/react-dom": "^19.0.2",
+    "@vitejs/plugin-react": "^4.3.4",
+    "fflate": "^0.8.2",
+    "happy-dom": "^15.11.7",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "vite": "^6.0.5",
+    "vitest": "^2.1.8",
+    "web-ext": "^8.3.0"
+  }
+}

@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>SipKit · Plain HTML embed</title>
+    <style>
+      /* Deliberately aggressive "host CRM" styles: the widget lives in a Shadow DOM and is unaffected. */
+      body { margin: 0; font: 15px/1.5 Georgia, serif; background: #f4f1ea; color: #222; }
+      button { background: hotpink; border: 3px dashed purple; font-family: 'Comic Sans MS', cursive; }
+      header { background: #1f2937; color: #fff; padding: 14px 24px; }
+      main { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 24px; padding: 24px; max-width: 1100px; margin: 0 auto; }
+      @media (max-width: 800px) { main { grid-template-columns: 1fr; } }
+      .card { background: #fff; border: 1px solid #ddd; border-radius: 8px; padding: 16px; }
+      #log { font: 12px/1.6 ui-monospace, monospace; max-height: 320px; overflow: auto; margin: 0; padding-left: 18px; }
+      /* Brand override from the host page, inherited into the shadow root (docs/theming.md).
+         --sipkit-* applies to both themes, --sipkit-dark-* to the dark theme only. */
+      sipkit-phone { --sipkit-primary: #0f766e; --sipkit-dark-primary: #2dd4bf; }
+    </style>
+  </head>
+  <body>
+    <header>
+      <strong>Acme CRM</strong> — plain HTML page using <code>&lt;sipkit-phone&gt;</code> from
+      <code>sipkit.iife.js</code> (no React on the page)
+    </header>
+    <main>
+      <section class="card">
+        <h2>Customer: Jane Customer</h2>
+        <p>Phone: 5550100 &nbsp; <button id="click-to-call" type="button">Click to call 1002</button></p>
+        <p><button id="incoming" type="button">Simulate incoming call</button></p>
+        <p>
+          Theme:
+          <button type="button" data-theme-choice="light">Light</button>
+          <button type="button" data-theme-choice="dark">Dark</button>
+          <button type="button" data-theme-choice="system">System</button>
+          <button type="button" id="custom-tokens">Custom tokens</button>
+        </p>
+        <h3>Events from the widget</h3>
+        <ol id="log"></ol>
+      </section>
+
+      <sipkit-phone id="phone" brand-name="Acme Phone" theme="light" disabled-features="contacts"></sipkit-phone>
+    </main>
+
+    <script src="/sipkit.iife.js"></script>
+    <script>
+      // This demo runs without a PBX: use the in-memory mock engine.
+      // Remove this line (or set real credentials via attributes) to use the SIP.js engine from core.
+      Sipkit.setFactory((config) =>
+        Sipkit.createMockSoftphone({ ...config, username: config.username || '1001' }, { registerDelayMs: 300 }),
+      );
+
+      const phone = document.getElementById('phone');
+      const log = document.getElementById('log');
+      const add = (text) => {
+        const li = document.createElement('li');
+        li.textContent = new Date().toLocaleTimeString() + '  ' + text;
+        log.prepend(li);
+      };
+      phone.addEventListener('sipkit:ready', () => add('sipkit:ready'));
+      phone.addEventListener('sipkit:registration', (e) => add('sipkit:registration ' + e.detail.state));
+      phone.addEventListener('sipkit:call', (e) => add('sipkit:call ' + e.detail.type + ' ' + e.detail.call.remoteNumber + ' ' + e.detail.call.state));
+      phone.addEventListener('sipkit:cdr', (e) => add('sipkit:cdr ' + e.detail.called + ' ' + e.detail.reason));
+
+      document.getElementById('click-to-call').addEventListener('click', () => phone.softphone && phone.softphone.call('1002'));
+      // Runtime theming: the theme attribute, and theme-tokens JSON (or the themeTokens property).
+      document.querySelectorAll('[data-theme-choice]').forEach((b) =>
+        b.addEventListener('click', () => phone.setAttribute('theme', b.dataset.themeChoice)),
+      );
+      document.getElementById('custom-tokens').addEventListener('click', () =>
+        phone.setAttribute('theme-tokens', JSON.stringify({ primary: '#7c3aed', radius: '0.25rem', dark: { primary: '#a78bfa' } })),
+      );
+      document.getElementById('incoming').addEventListener('click', () =>
+        phone.softphone && phone.softphone.simulateIncomingCall && phone.softphone.simulateIncomingCall('5550100', 'Jane Customer'),
+      );
+    </script>
+  </body>
+</html>

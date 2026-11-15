@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Click-to-call demo</title>
+    <style>
+      body { font: 15px/1.5 system-ui, sans-serif; max-width: 640px; margin-inline: auto; padding: 24px 16px; }
+      a { color: #2563eb; }
+      li { margin-block: 6px; }
+    </style>
+  </head>
+  <body>
+    <h1>Click-to-call demo</h1>
+    <p>
+      With the SipKit browser extension installed and "Call tel:, sip: and callto: links" switched on,
+      these links dial on the extension's softphone (docs/browser-extension.md). Select a number and use the context
+      menu, or type <code>call 5550100</code> in the address bar.
+    </p>
+    <ul>
+      <li><a href="tel:+1-555-0100" data-testid="tel-link">+1 555 0100 (tel:)</a></li>
+      <li><a href="sip:1002@demo.sipkit.local">1002 (sip:)</a></li>
+      <li><a href="callto:5550199">555 0199 (callto:)</a></li>
+      <li>Plain text: 98 4100 0000</li>
+    </ul>
+  </body>
+</html>

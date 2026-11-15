@@ -1,0 +1,69 @@
+{
+  "name": "sipkit-engine-native",
+  "version": "0.1.0",
+  "description": "sipkit SoftphoneEngine over a native SIP stack (baresip sidecar via IPC): plain SIP over UDP/TCP/TLS for desktop shells and Node",
+  "keywords": [
+    "sip",
+    "softphone",
+    "voip",
+    "baresip",
+    "electron",
+    "desktop",
+    "telephony",
+    "sipkit"
+  ],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/aryanhimself/sipkit.git",
+    "directory": "packages/engine-native"
+  },
+  "homepage": "https://github.com/aryanhimself/sipkit/tree/main/packages/engine-native#readme",
+  "bugs": {
+    "url": "https://github.com/aryanhimself/sipkit/issues"
+  },
+  "type": "module",
+  "sideEffects": false,
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./node": {
+      "types": "./dist/node/index.d.ts",
+      "import": "./dist/node/index.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "bin": {
+    "sipkit-native-sidecar": "./dist/node/cli.js"
+  },
+  "files": [
+    "dist",
+    "sidecar",
+    "README.md",
+    "LICENSE"
+  ],
+  "engines": {
+    "node": ">=18"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "build": "tsup",
+    "test": "vitest run",
+    "test:contract": "bash scripts/contract.sh",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "sipkit-core": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.2",
+    "tsup": "^8.3.5"
+  }
+}

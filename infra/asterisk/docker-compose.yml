@@ -1,0 +1,217 @@
+# sipkit - development PBX
+#
+#   docker compose up -d                      # dev PBX (direct WebRTC mode)
+#   docker compose --profile gateway up -d    # + WebRTC<->SIP gateway + coturn
+#   docker compose --profile turn up -d       # dev PBX + coturn only
+#   docker compose --profile push up -d       # + Web Push service (services/push/.env, docs/push.md)
+#   docker compose down
+#
+# Run scripts/gen-certs.sh first. See README.md.
+name: sipkit-dev
+
+x-asterisk: &asterisk
+  build:
+    context: ./docker
+  image: sipkit/asterisk:20-dev
+  restart: unless-stopped
+  volumes:
+    - ./certs:/certs:ro
+  healthcheck:
+    test: ["CMD", "asterisk", "-rx", "core show uptime"]
+    interval: 10s
+    timeout: 5s
+    retries: 10
+    start_period: 10s
+
+networks:
+  voip:
+    ipam:
+      config:
+        - subnet: 172.28.0.0/24
+
+services:
+  # --------------------------------------------------------------------------
+  # Dev PBX: WebRTC endpoints 1001/1002 (WSS 8089), plain SIP 2001/2002 (UDP 5060)
+  # --------------------------------------------------------------------------
+  asterisk:
+    <<: *asterisk
+    # Fixed hostname: Asterisk puts it in the From of out-of-dialog requests
+    # (qualify OPTIONS, unsolicited MWI NOTIFY). A random container id such as
+    # "2162a649b8b4" starts with a digit, which SIP.js rejects as a host name.
+    hostname: sipkit-dev-pbx
+    environment:
+      EXTERNAL_IP: ${EXTERNAL_IP:-127.0.0.1}
+      LOCAL_NET: 172.28.0.0/24
+      CONTAINER_IP: 172.28.0.10
+      RTP_START: "10000"
+      RTP_END: "10049"
+      DEV_SIP_PASSWORD: ${DEV_SIP_PASSWORD:-sipkitdev123}
+      # Web Push for incoming calls (docs/push.md). Empty = off. With --profile push:
+      #   SIPKIT_PUSH_URL=http://172.28.0.30:8790 SIPKIT_PUSH_SECRET=<PUSH_NOTIFY_SECRET>
+      SIPKIT_PUSH_URL: ${SIPKIT_PUSH_URL:-}
+      SIPKIT_PUSH_SECRET: ${SIPKIT_PUSH_SECRET:-}
+      SIPKIT_PUSH_WAIT: ${SIPKIT_PUSH_WAIT:-30}
+    volumes:
+      - ./certs:/certs:ro
+      - ./config/pbx:/config:ro
+      # Shared with voicemail-api (V2-VM-02), which lists / moves / deletes messages.
+      - voicemail-spool:/var/spool/asterisk/voicemail
+    ports:
+      - "8089:8089/tcp" # HTTPS + WSS  (wss://localhost:8089/ws)
+      - "5060:5060/udp" # plain SIP for Zoiper / desk phones
+      - "10000-10049:10000-10049/udp" # RTP
+    networks:
+      voip:
+        ipv4_address: 172.28.0.10
+
+  # --------------------------------------------------------------------------
+  # Gateway mode: Asterisk as WebRTC<->SIP B2BUA towards an upstream plain-SIP PBX
+  # (defaults to the dev PBX above, account 2099).
+  # --------------------------------------------------------------------------
+  asterisk-gateway:
+    <<: *asterisk
+    hostname: sipkit-dev-gateway
+    profiles: ["gateway"]
+    environment:
+      EXTERNAL_IP: ${EXTERNAL_IP:-127.0.0.1}
+      LOCAL_NET: 172.28.0.0/24
+      CONTAINER_IP: 172.28.0.11
+      RTP_START: "10100"
+      RTP_END: "10149"
+      GW_BROWSER_USER: ${GW_BROWSER_USER:-1001}
+      GW_BROWSER_PASSWORD: ${GW_BROWSER_PASSWORD:-sipkitdev123}
+      UPSTREAM_HOST: ${UPSTREAM_HOST:-172.28.0.10}
+      UPSTREAM_PORT: ${UPSTREAM_PORT:-5060}
+      UPSTREAM_DOMAIN: ${UPSTREAM_DOMAIN:-172.28.0.10}
+      UPSTREAM_USER: ${UPSTREAM_USER:-2099}
+      UPSTREAM_PASSWORD: ${UPSTREAM_PASSWORD:-sipkitdev123}
+      UPSTREAM_CODECS: ${UPSTREAM_CODECS:-ulaw,alaw}
+    volumes:
+      - ./certs:/certs:ro
+      - ./config/gateway:/config:ro
+    ports:
+      - "8189:8089/tcp" # HTTPS + WSS  (wss://localhost:8189/ws)
+      - "5070:5060/udp" # SIP towards the upstream (only needed if the upstream is outside Docker)
+      - "10100-10149:10100-10149/udp" # RTP
+    networks:
+      voip:
+        ipv4_address: 172.28.0.11
+    depends_on:
+      asterisk:
+        condition: service_healthy
+        required: false # an external upstream does not need the dev PBX
+
+  # --------------------------------------------------------------------------
+  # TURN/STUN for clients behind restrictive NAT/firewalls
+  # --------------------------------------------------------------------------
+  coturn:
+    image: coturn/coturn:4.6
+    profiles: ["gateway", "turn"]
+    restart: unless-stopped
+    command:
+      - -c
+      - /etc/coturn/turnserver.conf
+      - --external-ip=${EXTERNAL_IP:-127.0.0.1}
+      - --realm=${TURN_REALM:-sipkit.local}
+      - --user=${TURN_USER:-sipkit}:${TURN_PASSWORD:-sipkitturn-dev}
+    volumes:
+      - ./coturn/turnserver.conf:/etc/coturn/turnserver.conf:ro
+    ports:
+      - "3478:3478/udp"
+      - "3478:3478/tcp"
+      - "49160-49200:49160-49200/udp"
+    networks:
+      voip:
+        ipv4_address: 172.28.0.20
+
+  # --------------------------------------------------------------------------
+  # Voicemail list API (V2-VM-02): list / stream / mark read / delete over the
+  # dev PBX's voicemail spool, MWI refresh through AMI. docs/voicemail.md
+  #   docker compose --profile voicemail up -d
+  # --------------------------------------------------------------------------
+  voicemail-api:
+    build:
+      context: ../../services/voicemail-api
+    image: sipkit/voicemail-api:dev
+    profiles: ["voicemail"]
+    restart: unless-stopped
+    # Same uid/gid as the asterisk user in the PBX image, so moved files keep their owner.
+    user: "100:101"
+    environment:
+      VM_SPOOL_DIR: /var/spool/asterisk/voicemail
+      VM_CORS_ORIGINS: ${VM_CORS_ORIGINS:-http://localhost:5179,http://localhost:5173}
+      VM_TOKEN_SECRET: ${VM_TOKEN_SECRET:-}
+      VM_STATIC_TOKENS: ${VM_STATIC_TOKENS:-}
+      # Dev default so the playground works out of the box; never set this in production.
+      VM_DEV_TOKEN: ${VM_DEV_TOKEN:-sipkit-dev-voicemail}
+      AMI_HOST: 172.28.0.10
+      AMI_USERNAME: sipkit-voicemail
+      AMI_SECRET: ${DEV_SIP_PASSWORD:-sipkitdev123}
+    volumes:
+      - voicemail-spool:/var/spool/asterisk/voicemail
+    ports:
+      - "8090:8090/tcp" # http://localhost:8090/v1/mailboxes/1001/messages
+    networks:
+      voip:
+        ipv4_address: 172.28.0.21
+    depends_on:
+      asterisk:
+        condition: service_healthy
+
+  # --------------------------------------------------------------------------
+  # Native SIP engine (V2-DESK-02): baresip sidecars for 2001 / 2002, driven by
+  # NativeSipEngine over ctrl_tcp (docs/native-engine.md). Manual testing only:
+  # the contract script (pnpm --filter sipkit-engine-native test:contract)
+  # starts its own containers.
+  #   docker compose --profile native up -d
+  # --------------------------------------------------------------------------
+  baresip-a:
+    build:
+      context: ../../packages/engine-native/sidecar
+    image: sipkit/baresip-sidecar:4.12
+    profiles: ["native"]
+    ports:
+      - "127.0.0.1:44441:4444/tcp" # ctrl_tcp
+    networks:
+      voip:
+        ipv4_address: 172.28.0.41
+
+  baresip-b:
+    image: sipkit/baresip-sidecar:4.12
+    profiles: ["native"]
+    ports:
+      - "127.0.0.1:44442:4444/tcp" # ctrl_tcp
+    networks:
+      voip:
+        ipv4_address: 172.28.0.42
+    depends_on:
+      - baresip-a
+
+  # --------------------------------------------------------------------------
+  # Web Push for incoming calls (V2-PUSH-01, docs/push.md). VAPID keys and
+  # secrets come from services/push/.env (pnpm --filter sipkit-push-service gen:vapid).
+  # Start the PBX with SIPKIT_PUSH_URL=http://172.28.0.30:8790 SIPKIT_PUSH_SECRET=... to use it.
+  # --------------------------------------------------------------------------
+  push:
+    build:
+      context: ../../services/push
+    image: sipkit/push:dev
+    hostname: sipkit-push
+    profiles: ["push"]
+    restart: unless-stopped
+    env_file:
+      - path: ../../services/push/.env
+        required: true
+    environment:
+      PUSH_STORE_FILE: /data/subscriptions.json
+    volumes:
+      - push-data:/data
+    ports:
+      - "8790:8790/tcp" # http://localhost:8790 (softphone push.serviceUrl)
+    networks:
+      voip:
+        ipv4_address: 172.28.0.30
+
+volumes:
+  voicemail-spool:
+  push-data:

@@ -1,0 +1,72 @@
+{
+  "name": "sipkit-core",
+  "version": "0.1.0",
+  "description": "Framework-agnostic, embeddable SIP softphone for the browser (SIP.js over WebRTC) with typed state, events and plugins",
+  "keywords": [
+    "sip",
+    "softphone",
+    "webrtc",
+    "voip",
+    "sip.js",
+    "asterisk",
+    "telephony",
+    "phone",
+    "call-center"
+  ],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/aryanhimself/sipkit.git",
+    "directory": "packages/core"
+  },
+  "homepage": "https://github.com/aryanhimself/sipkit/tree/main/packages/core#readme",
+  "bugs": {
+    "url": "https://github.com/aryanhimself/sipkit/issues"
+  },
+  "type": "module",
+  "sideEffects": false,
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./testing": {
+      "types": "./dist/testing/index.d.ts",
+      "import": "./dist/testing/index.js"
+    },
+    "./remote": {
+      "types": "./dist/remote/index.d.ts",
+      "import": "./dist/remote/index.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "engines": {
+    "node": ">=18"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "sip.js": "^0.21.2",
+    "zod": "^3.24.1"
+  },
+  "devDependencies": {
+    "happy-dom": "^15.11.7",
+    "tsup": "^8.3.5"
+  }
+}

@@ -1,0 +1,17 @@
+/*
+ * The widget's stylesheet (theme tokens + utilities, scoped to .sipkit-phone)
+ * compiled together with this app's own sources so the setup / settings
+ * screens can use the same token classes (bg-background, text-primary, …).
+ */
+@import '../../../../packages/ui/src/styles.css';
+@source './';
+
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+}
+body {
+  overflow: hidden;
+}

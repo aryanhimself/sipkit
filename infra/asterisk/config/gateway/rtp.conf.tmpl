@@ -1,0 +1,17 @@
+; RTP / ICE settings for the WebRTC<->SIP gateway.
+[general]
+; Narrow range so Docker can publish it (each call uses 2 ports without rtcp-mux,
+; WebRTC uses rtcp-mux). Must match the ports published in docker-compose.yml.
+rtpstart=${RTP_START}
+rtpend=${RTP_END}
+strictrtp=yes
+icesupport=yes
+; STUN lets Asterisk learn its public address. Replace with your own STUN server
+; in production (or remove if the PBX has a public IP).
+stunaddr=stun.l.google.com:19302
+
+[ice_host_candidates]
+; The container IP (Docker bridge) is not reachable from the host on Docker
+; Desktop, so advertise EXTERNAL_IP instead (127.0.0.1 by default for local dev,
+; your LAN IP if testing from a phone/another PC).
+${CONTAINER_IP} => ${EXTERNAL_IP}

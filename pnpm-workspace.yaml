@@ -1,0 +1,9 @@
+packages:
+  - "packages/*"
+  - "apps/*"
+  - "services/*"
+allowBuilds:
+  esbuild: true
+  electron: true
+  electron-winstaller: false
+  spawn-sync: false

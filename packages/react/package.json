@@ -1,0 +1,71 @@
+{
+  "name": "sipkit-react",
+  "version": "0.1.0",
+  "description": "React provider and hooks for sipkit-core, the embeddable SIP/WebRTC softphone",
+  "keywords": [
+    "sip",
+    "softphone",
+    "webrtc",
+    "voip",
+    "react",
+    "hooks",
+    "telephony"
+  ],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/aryanhimself/sipkit.git",
+    "directory": "packages/react"
+  },
+  "homepage": "https://github.com/aryanhimself/sipkit/tree/main/packages/react#readme",
+  "bugs": {
+    "url": "https://github.com/aryanhimself/sipkit/issues"
+  },
+  "type": "module",
+  "sideEffects": false,
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./testing": {
+      "types": "./dist/testing/index.d.ts",
+      "import": "./dist/testing/index.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "engines": {
+    "node": ">=18"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "build": "tsup",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "peerDependencies": {
+    "react": "^18.0.0 || ^19.0.0"
+  },
+  "dependencies": {
+    "sipkit-core": "workspace:*"
+  },
+  "devDependencies": {
+    "@testing-library/react": "^16.1.0",
+    "@types/react": "^19.0.2",
+    "jsdom": "^25.0.1",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "@types/react-dom": "^19.0.2",
+    "tsup": "^8.3.5"
+  }
+}

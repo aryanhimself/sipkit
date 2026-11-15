@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>SipKit</title>
+    <link rel="stylesheet" href="../shared/page.css" />
+  </head>
+  <body>
+    <main class="page">
+      <h1 data-i18n="optionsTitle"></h1>
+      <form id="form" novalidate>
+        <section>
+          <h2 data-i18n="optionsAccount"></h2>
+          <p class="hint" data-i18n="optionsAccountHint"></p>
+          <label><span data-i18n="optionsEngine"></span>
+            <select name="engine">
+              <option value="sipjs" data-i18n="optionsEngineSip"></option>
+              <option value="mock" data-i18n="optionsEngineMock"></option>
+            </select>
+          </label>
+          <label><span data-i18n="optionsServer"></span><input name="server" type="url" placeholder="wss://pbx.example.com:8089/ws" /></label>
+          <label><span data-i18n="optionsUsername"></span><input name="username" autocomplete="username" /></label>
+          <label><span data-i18n="optionsPassword"></span><input name="password" type="password" autocomplete="current-password" /></label>
+          <label><span data-i18n="optionsDomain"></span><input name="domain" /></label>
+          <label><span data-i18n="optionsDisplayName"></span><input name="displayName" /></label>
+          <p class="hint" data-i18n="optionsSecretsHint"></p>
+          <button type="button" id="mic" data-i18n="optionsMic"></button>
+          <span id="mic-status" class="hint" role="status"></span>
+        </section>
+        <section>
+          <h2 data-i18n="optionsSites"></h2>
+          <label><span data-i18n="optionsAllowedOrigins"></span><textarea name="allowedOrigins" rows="4"></textarea></label>
+          <p class="hint" data-i18n="optionsAllowedOriginsHint"></p>
+          <label><span data-i18n="optionsApprovedOrigins"></span><textarea name="approvedOrigins" rows="3"></textarea></label>
+          <label><span data-i18n="optionsSoftphoneUrl"></span><input name="softphoneUrl" type="url" placeholder="https://crm.example.com/" /></label>
+        </section>
+        <section>
+          <h2 data-i18n="optionsBehaviour"></h2>
+          <label class="check"><input name="clickToCall" type="checkbox" /><span data-i18n="optionsClickToCall"></span></label>
+          <p class="hint" data-i18n="optionsClickToCallHint"></p>
+          <label class="check"><input name="notifications" type="checkbox" /><span data-i18n="optionsNotifications"></span></label>
+        </section>
+        <button type="submit" class="primary" data-i18n="optionsSave"></button>
+        <span id="status" class="hint" role="status"></span>
+      </form>
+    </main>
+    <script type="module" src="./options.ts"></script>
+  </body>
+</html>

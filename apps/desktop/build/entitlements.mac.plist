@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!-- Hardened runtime entitlements (V2-DESK-01). Keep this list minimal. -->
+<plist version="1.0">
+  <dict>
+    <!-- Required by Electron's V8 JIT under the hardened runtime. -->
+    <key>com.apple.security.cs.allow-jit</key>
+    <true/>
+    <!-- Microphone and camera for WebRTC calls. -->
+    <key>com.apple.security.device.audio-input</key>
+    <true/>
+    <key>com.apple.security.device.camera</key>
+    <true/>
+    <!-- SIP over WSS to the PBX. -->
+    <key>com.apple.security.network.client</key>
+    <true/>
+  </dict>
+</plist>

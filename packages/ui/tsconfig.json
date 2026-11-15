@@ -1,0 +1,16 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "jsx": "react-jsx",
+    "outDir": "dist",
+    "types": ["vite/client"],
+    "paths": {
+      "@/*": ["./src/*"],
+      "sipkit-core": ["../core/dist/index.d.ts", "../core/src/index.ts"],
+      "sipkit-core/testing": ["../core/dist/testing/index.d.ts", "../core/src/testing/index.ts"],
+      "sipkit-react": ["../react/src/index.ts"],
+      "sipkit-react/testing": ["../react/src/testing/index.ts"]
+    }
+  },
+  "include": ["src", "vite.config.ts", "vitest.config.ts", "build"]
+}

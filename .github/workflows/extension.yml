@@ -1,0 +1,98 @@
+name: Extension
+
+# Builds the browser extension (apps/extension) for Chrome and Firefox,
+# lints the Firefox build with web-ext, runs the unit tests and the
+# Playwright e2e with the unpacked Chrome extension (mock engine), and
+# uploads both store zips. Store submission is manual (docs/browser-extension.md).
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "apps/extension/**"
+      - "apps/playground/**"
+      - "packages/**"
+      - "pnpm-lock.yaml"
+      - ".github/workflows/extension.yml"
+  pull_request:
+    paths:
+      - "apps/extension/**"
+      - "apps/playground/**"
+      - "packages/**"
+      - "pnpm-lock.yaml"
+      - ".github/workflows/extension.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: extension-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  NODE_VERSION: "22"
+
+jobs:
+  build:
+    name: Extension (Chrome + Firefox)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm -r --filter "./packages/*" build
+      - run: pnpm --filter sipkit-extension typecheck
+      - run: pnpm --filter sipkit-extension test
+
+      # Production origins / CRM URL come from repository variables (defaults: localhost only).
+      - name: Build Chrome zip
+        run: pnpm --filter sipkit-extension build:chrome
+        env:
+          SIPKIT_EXT_ORIGINS: ${{ vars.SIPKIT_EXT_ORIGINS }}
+          SIPKIT_EXT_SOFTPHONE_URL: ${{ vars.SIPKIT_EXT_SOFTPHONE_URL }}
+      - name: Build Firefox zip
+        run: pnpm --filter sipkit-extension build:firefox
+        env:
+          SIPKIT_EXT_ORIGINS: ${{ vars.SIPKIT_EXT_ORIGINS }}
+          SIPKIT_EXT_SOFTPHONE_URL: ${{ vars.SIPKIT_EXT_SOFTPHONE_URL }}
+          SIPKIT_EXT_GECKO_ID: ${{ vars.SIPKIT_EXT_GECKO_ID }}
+      - run: pnpm --filter sipkit-extension lint:firefox
+
+      - name: Install Chromium
+        run: pnpm --filter sipkit-extension exec playwright install --with-deps chromium
+      # Rebuild with the default (localhost) origins so the e2e page can attach.
+      - name: Extension e2e (mock engine)
+        run: pnpm --filter sipkit-extension test:e2e
+        env:
+          CI: "true"
+          SIPKIT_EXT_ORIGINS: ""
+          E2E_PORT: "5180"
+
+      - name: Rebuild store zips
+        run: pnpm --filter sipkit-extension build
+        env:
+          SIPKIT_EXT_ORIGINS: ${{ vars.SIPKIT_EXT_ORIGINS }}
+          SIPKIT_EXT_SOFTPHONE_URL: ${{ vars.SIPKIT_EXT_SOFTPHONE_URL }}
+          SIPKIT_EXT_GECKO_ID: ${{ vars.SIPKIT_EXT_GECKO_ID }}
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: extension-zips
+          path: apps/extension/dist/*.zip
+          retention-days: 14
+          if-no-files-found: error
+
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: extension-e2e
+          path: apps/extension/test-results
+          retention-days: 7
+          if-no-files-found: ignore

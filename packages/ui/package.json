@@ -1,0 +1,100 @@
+{
+  "name": "sipkit-ui",
+  "version": "0.1.0",
+  "description": "Ready-made softphone widget (React + Tailwind + Radix), also shipped as the <sipkit-phone> web component",
+  "keywords": [
+    "sip",
+    "softphone",
+    "webrtc",
+    "voip",
+    "react",
+    "web-component",
+    "custom-element",
+    "widget",
+    "tailwind",
+    "telephony"
+  ],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/aryanhimself/sipkit.git",
+    "directory": "packages/ui"
+  },
+  "homepage": "https://github.com/aryanhimself/sipkit/tree/main/packages/ui#readme",
+  "bugs": {
+    "url": "https://github.com/aryanhimself/sipkit/issues"
+  },
+  "type": "module",
+  "sideEffects": [
+    "*.css",
+    "./src/embed.ts",
+    "./dist/embed.js",
+    "./dist/sipkit.iife.js",
+    "./dist/sipkit-push-sw.js"
+  ],
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./embed": {
+      "types": "./dist/embed.d.ts",
+      "import": "./dist/embed.js"
+    },
+    "./styles.css": "./dist/styles.css",
+    "./sipkit.iife.js": "./dist/sipkit.iife.js",
+    "./sipkit-push-sw.js": "./dist/sipkit-push-sw.js",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist",
+    "!dist/sipkit.iife.js.map",
+    "README.md",
+    "LICENSE"
+  ],
+  "engines": {
+    "node": ">=18"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "build": "vite build && vite build --mode iife && vite build --mode sw",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit",
+    "gen:tokens": "UPDATE_TOKENS=1 vitest run src/theme/tokens.test.ts"
+  },
+  "peerDependencies": {
+    "react": "^18.0.0 || ^19.0.0",
+    "react-dom": "^18.0.0 || ^19.0.0"
+  },
+  "dependencies": {
+    "sipkit-core": "workspace:*",
+    "sipkit-react": "workspace:*",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
+    "lucide-react": "^0.468.0",
+    "radix-ui": "^1.1.2",
+    "sonner": "^1.7.1",
+    "tailwind-merge": "^2.6.0"
+  },
+  "devDependencies": {
+    "@tailwindcss/vite": "^4.0.0",
+    "@testing-library/react": "^16.1.0",
+    "@testing-library/user-event": "^14.5.2",
+    "@types/node": "^22.10.2",
+    "@types/react": "^19.0.2",
+    "@types/react-dom": "^19.0.2",
+    "@vitejs/plugin-react": "^4.3.4",
+    "jsdom": "^25.0.1",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "tailwindcss": "^4.0.0",
+    "tw-animate-css": "^1.2.0",
+    "vite": "^6.0.5",
+    "vite-plugin-dts": "^4.4.0"
+  }
+}

@@ -1,0 +1,41 @@
+{
+  "name": "sipkit",
+  "private": true,
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/aryanhimself/sipkit.git"
+  },
+  "homepage": "https://github.com/aryanhimself/sipkit#readme",
+  "bugs": {
+    "url": "https://github.com/aryanhimself/sipkit/issues"
+  },
+  "version": "0.0.0",
+  "packageManager": "pnpm@11.26.0",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "build": "pnpm -r --filter \"./packages/*\" build && pnpm --filter sipkit-playground build",
+    "dev": "pnpm --filter sipkit-playground dev",
+    "test": "pnpm -r --if-present test",
+    "test:e2e": "pnpm --filter sipkit-playground test:e2e",
+    "typecheck": "pnpm -r typecheck",
+    "lint": "eslint .",
+    "format": "prettier --write .",
+    "check": "pnpm lint && pnpm typecheck && pnpm test && pnpm build",
+    "changeset": "changeset",
+    "version-packages": "changeset version",
+    "release": "pnpm -r --filter \"./packages/*\" build && changeset publish"
+  },
+  "devDependencies": {
+    "@changesets/cli": "^2.31.1",
+    "@eslint/js": "^9.17.0",
+    "eslint": "^9.17.0",
+    "prettier": "^3.4.2",
+    "typescript": "~5.7.2",
+    "typescript-eslint": "^8.18.0",
+    "vitest": "^2.1.8"
+  },
+  "type": "module"
+}

@@ -1,0 +1,25 @@
+{
+  "name": "sipkit-push-service",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Self-hosted Web Push (VAPID) service: wakes a closed softphone tab on an incoming Asterisk call",
+  "type": "module",
+  "engines": {
+    "node": ">=22.6"
+  },
+  "scripts": {
+    "start": "node --experimental-strip-types --no-warnings=ExperimentalWarning src/main.ts",
+    "dev": "node --experimental-strip-types --no-warnings=ExperimentalWarning --watch src/main.ts",
+    "gen:vapid": "node --experimental-strip-types --no-warnings=ExperimentalWarning scripts/generate-vapid-keys.ts",
+    "mint-token": "node --experimental-strip-types --no-warnings=ExperimentalWarning scripts/mint-token.ts",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "web-push": "3.6.7"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.2",
+    "@types/web-push": "3.6.4"
+  }
+}

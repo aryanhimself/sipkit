@@ -1,0 +1,181 @@
+{
+  "extName": {
+    "message": "SipKit"
+  },
+  "extDescription": {
+    "message": "तपाईंका सबै ट्याबका लागि एउटै सफ्टफोन: CRM पेज रिलोड वा बन्द गर्दा पनि कल चलिरहन्छ।"
+  },
+  "cmdAnswer": {
+    "message": "बजिरहेको कल उठाउनुहोस्"
+  },
+  "cmdHangup": {
+    "message": "कल राख्नुहोस् वा अस्वीकार गर्नुहोस्"
+  },
+  "menuCall": {
+    "message": "“%s” मा कल गर्नुहोस्"
+  },
+  "omniboxHint": {
+    "message": "नम्बर टाइप गरेर Enter थिच्नुहोस्"
+  },
+  "badgeRinging": {
+    "message": "घण्टी"
+  },
+  "badgeInCall": {
+    "message": "कल"
+  },
+  "badgeOffline": {
+    "message": "अफ"
+  },
+  "badgeDnd": {
+    "message": "मौन"
+  },
+  "badgeNotConfigured": {
+    "message": "सेटअप गरिएको छैन"
+  },
+  "badgeRingingTitle": {
+    "message": "आगमन कल"
+  },
+  "badgeInCallTitle": {
+    "message": "कलमा"
+  },
+  "badgeOfflineTitle": {
+    "message": "अफलाइन"
+  },
+  "badgeMissedTitle": {
+    "message": "छुटेका कलहरू"
+  },
+  "badgeDndTitle": {
+    "message": "बाधा नदिनुहोस्"
+  },
+  "badgeOnlineTitle": {
+    "message": "अनलाइन"
+  },
+  "notifyIncomingTitle": {
+    "message": "आगमन कल"
+  },
+  "notifyAnswer": {
+    "message": "उठाउनुहोस्"
+  },
+  "notifyDecline": {
+    "message": "अस्वीकार"
+  },
+  "notifyMissedTitle": {
+    "message": "छुटेको कल"
+  },
+  "popupConnected": {
+    "message": "साझा सफ्टफोन (एक्सटेन्सन)"
+  },
+  "popupConnecting": {
+    "message": "सफ्टफोनमा जोडिँदै…"
+  },
+  "popupOpenSoftphone": {
+    "message": "CRM खोल्नुहोस्"
+  },
+  "popupOptions": {
+    "message": "सेटिङ"
+  },
+  "popupHostUnavailable": {
+    "message": "सफ्टफोन सुरु हुन सकेन। खाता जाँच गर्न सेटिङ खोल्नुहोस्।"
+  },
+  "optionsTitle": {
+    "message": "SipKit सेटिङ"
+  },
+  "optionsAccount": {
+    "message": "SIP खाता"
+  },
+  "optionsAccountHint": {
+    "message": "यो ब्राउजरको एक मात्र सफ्टफोन एक्सटेन्सनले चलाउँछ। तल अनुमति दिइएका पेजहरूले आफ्नै सुरु गर्नुको सट्टा यसैलाई प्रयोग गर्छन्।"
+  },
+  "optionsEngine": {
+    "message": "इन्जिन"
+  },
+  "optionsEngineSip": {
+    "message": "WebRTC मार्फत SIP"
+  },
+  "optionsEngineMock": {
+    "message": "डेमो (नक्कली इन्जिन, PBX बिना)"
+  },
+  "optionsServer": {
+    "message": "WebSocket सर्भर (wss://)"
+  },
+  "optionsUsername": {
+    "message": "एक्सटेन्सन / प्रयोगकर्ता नाम"
+  },
+  "optionsPassword": {
+    "message": "पासवर्ड"
+  },
+  "optionsDomain": {
+    "message": "SIP डोमेन (ऐच्छिक)"
+  },
+  "optionsDisplayName": {
+    "message": "देखाउने नाम (ऐच्छिक)"
+  },
+  "optionsSecretsHint": {
+    "message": "पासवर्ड मेमोरीमा मात्र राखिन्छ र ब्राउजर बन्द हुँदा बिर्सिन्छ। स्वीकृत CRM पेजले छोटो अवधिको टोकनले फेरि साइन इन गर्न सक्छ।"
+  },
+  "optionsMic": {
+    "message": "माइक्रोफोन अनुमति दिनुहोस्"
+  },
+  "optionsMicGranted": {
+    "message": "माइक्रोफोन अनुमति दिइयो।"
+  },
+  "optionsMicDenied": {
+    "message": "माइक्रोफोन रोकिएको छ। यो एक्सटेन्सनका लागि ब्राउजरको साइट सेटिङमा अनुमति दिनुहोस्।"
+  },
+  "optionsSites": {
+    "message": "साइटहरू"
+  },
+  "optionsAllowedOrigins": {
+    "message": "सफ्टफोन प्रयोग गर्न सक्ने पेजहरू (म्याच प्याटर्न, प्रति लाइन एक)"
+  },
+  "optionsAllowedOriginsHint": {
+    "message": "उदाहरण: https://crm.example.com/*। नयाँ साइट सेभ गर्दा अनुमति माग्छ।"
+  },
+  "optionsApprovedOrigins": {
+    "message": "साइन इन गर्न स्वीकृत साइटहरू (origin)"
+  },
+  "optionsSoftphoneUrl": {
+    "message": "पपअपबाट खोलिने CRM पेज"
+  },
+  "optionsBehaviour": {
+    "message": "व्यवहार"
+  },
+  "optionsClickToCall": {
+    "message": "tel:, sip: र callto: लिङ्कहरू सफ्टफोनबाट कल गर्नुहोस्"
+  },
+  "optionsClickToCallHint": {
+    "message": "माथिको सूची बाहिरका साइटमा यसका लागि सबै वेबसाइटको अनुमति चाहिन्छ।"
+  },
+  "optionsNotifications": {
+    "message": "आगमन र छुटेका कलका सूचना देखाउनुहोस्"
+  },
+  "optionsSave": {
+    "message": "सेभ गर्नुहोस्"
+  },
+  "optionsSaved": {
+    "message": "सेभ भयो।"
+  },
+  "optionsInvalidPattern": {
+    "message": "मान्य म्याच प्याटर्न होइन: $LIST$",
+    "placeholders": {
+      "list": {
+        "content": "$1"
+      }
+    }
+  },
+  "approveTitle": {
+    "message": "यो साइट जोड्ने?"
+  },
+  "approveQuestion": {
+    "message": "यो साइट साझा सफ्टफोनमा आफ्नै प्रमाणपत्रले साइन इन गर्न चाहन्छ:"
+  },
+  "approveHint": {
+    "message": "आफूले विश्वास गर्ने साइट (जस्तै CRM) लाई मात्र अनुमति दिनुहोस्। पछि सेटिङबाट हटाउन सकिन्छ।"
+  },
+  "approveAllow": {
+    "message": "अनुमति दिनुहोस्"
+  },
+  "approveDeny": {
+    "message": "अनुमति नदिनुहोस्"
+  }
+}

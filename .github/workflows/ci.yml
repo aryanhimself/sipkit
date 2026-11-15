@@ -1,0 +1,185 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+    inputs:
+      sip_e2e:
+        description: Run the real-Asterisk (SIP) job
+        type: boolean
+        default: true
+  schedule:
+    - cron: "17 2 * * *" # nightly: includes the real-Asterisk job
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  NODE_VERSION: "22"
+
+jobs:
+  check:
+    name: Lint, typecheck, test, build
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      # Version comes from "packageManager" in package.json.
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm lint
+      - run: pnpm typecheck
+      - run: pnpm test
+      - run: pnpm build
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: packages/*/dist
+          retention-days: 7
+          if-no-files-found: warn
+
+  e2e-mock:
+    name: Playwright e2e (playground, mock mode)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    needs: check
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm build
+
+      - name: Resolve Playwright version
+        id: pw
+        run: echo "version=$(pnpm --filter sipkit-playground exec playwright --version | awk '{print $2}')" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/cache@v4
+        id: pw-cache
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ steps.pw.outputs.version }}
+
+      - name: Install Playwright browsers
+        if: steps.pw-cache.outputs.cache-hit != 'true'
+        run: pnpm --filter sipkit-playground exec playwright install --with-deps chromium
+      - name: Install Playwright system deps (cache hit)
+        if: steps.pw-cache.outputs.cache-hit == 'true'
+        run: pnpm --filter sipkit-playground exec playwright install-deps chromium
+
+      # The playground's playwright.config must start the app in mock mode
+      # (FakeEngine, no network) when E2E_MODE=mock.
+      - name: Run e2e (mock)
+        run: pnpm --filter sipkit-playground test:e2e
+        env:
+          CI: "true"
+          E2E_MODE: mock
+
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-report-mock
+          path: |
+            apps/playground/playwright-report
+            apps/playground/test-results
+          retention-days: 7
+
+  e2e-sip:
+    name: Real SIP e2e (infra Asterisk) [optional]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    needs: check
+    # Optional until roadmap V1-TEST-04 is stable: nightly, manual, or when the repo
+    # variable RUN_SIP_E2E is 'true'. Failures don't fail the workflow yet.
+    if: >-
+      github.event_name == 'schedule' ||
+      (github.event_name == 'workflow_dispatch' && inputs.sip_e2e) ||
+      vars.RUN_SIP_E2E == 'true'
+    continue-on-error: true
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Generate dev certificates
+        run: infra/asterisk/scripts/gen-certs.sh
+
+      - name: Boot dev PBX + gateway
+        working-directory: infra/asterisk
+        run: docker compose --profile gateway up -d --build --wait --wait-timeout 180
+
+      - name: Asterisk status
+        working-directory: infra/asterisk
+        run: |
+          docker compose exec -T asterisk asterisk -rx "core show version"
+          docker compose exec -T asterisk asterisk -rx "pjsip show endpoints"
+          docker compose exec -T asterisk-gateway asterisk -rx "pjsip show registrations"
+
+      - name: WSS register smoke test (direct + gateway)
+        run: |
+          python3 -m pip install --quiet websocket-client
+          python3 infra/asterisk/scripts/wss-register-smoke.py wss://localhost:8089/ws 1001 sipkitdev123
+          python3 infra/asterisk/scripts/wss-register-smoke.py wss://localhost:8189/ws 1001 sipkitdev123
+
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm build
+
+      # Runs only once real-SIP specs exist (apps/playground/e2e/sip/**).
+      - name: Run e2e (real SIP)
+        if: hashFiles('apps/playground/e2e/sip/**') != ''
+        run: |
+          pnpm --filter sipkit-playground exec playwright install --with-deps chromium
+          pnpm --filter sipkit-playground test:e2e
+        env:
+          CI: "true"
+          E2E_MODE: sip
+          E2E_SIP_WSS_URL: wss://localhost:8089/ws
+          E2E_SIP_GATEWAY_WSS_URL: wss://localhost:8189/ws
+          E2E_SIP_PASSWORD: sipkitdev123
+          # Self-signed dev CA: the Playwright config should launch Chromium with
+          # --ignore-certificate-errors and fake media flags when E2E_MODE=sip.
+          E2E_SIP_IGNORE_CERT: "1"
+
+      - name: Asterisk logs
+        if: always()
+        working-directory: infra/asterisk
+        run: docker compose --profile gateway logs --no-color > asterisk-logs.txt || true
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: e2e-sip-artifacts
+          path: |
+            infra/asterisk/asterisk-logs.txt
+            apps/playground/playwright-report
+            apps/playground/test-results
+          retention-days: 7
+          if-no-files-found: ignore
+
+      - name: Tear down
+        if: always()
+        working-directory: infra/asterisk
+        run: docker compose --profile gateway down -v

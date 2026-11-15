@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>SipKit</title>
+    <link rel="stylesheet" href="../shared/page.css" />
+  </head>
+  <body>
+    <main class="page">
+      <h1 data-i18n="approveTitle"></h1>
+      <p><span data-i18n="approveQuestion"></span></p>
+      <p class="origin" id="origin" data-testid="approve-origin"></p>
+      <p class="hint" data-i18n="approveHint"></p>
+      <div class="actions">
+        <button type="button" id="deny" data-i18n="approveDeny"></button>
+        <button type="button" id="allow" class="primary" data-i18n="approveAllow"></button>
+      </div>
+    </main>
+    <script type="module" src="./approve.ts"></script>
+  </body>
+</html>

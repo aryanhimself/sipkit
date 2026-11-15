@@ -1,0 +1,181 @@
+{
+  "extName": {
+    "message": "SipKit"
+  },
+  "extDescription": {
+    "message": "One softphone for all your tabs: calls keep going when you reload or close the CRM page."
+  },
+  "cmdAnswer": {
+    "message": "Answer the ringing call"
+  },
+  "cmdHangup": {
+    "message": "Hang up or decline"
+  },
+  "menuCall": {
+    "message": "Call “%s”"
+  },
+  "omniboxHint": {
+    "message": "Type a number and press Enter to call it"
+  },
+  "badgeRinging": {
+    "message": "RING"
+  },
+  "badgeInCall": {
+    "message": "CALL"
+  },
+  "badgeOffline": {
+    "message": "OFF"
+  },
+  "badgeDnd": {
+    "message": "DND"
+  },
+  "badgeNotConfigured": {
+    "message": "Not set up"
+  },
+  "badgeRingingTitle": {
+    "message": "Incoming call"
+  },
+  "badgeInCallTitle": {
+    "message": "In a call"
+  },
+  "badgeOfflineTitle": {
+    "message": "Offline"
+  },
+  "badgeMissedTitle": {
+    "message": "Missed calls"
+  },
+  "badgeDndTitle": {
+    "message": "Do not disturb"
+  },
+  "badgeOnlineTitle": {
+    "message": "Online"
+  },
+  "notifyIncomingTitle": {
+    "message": "Incoming call"
+  },
+  "notifyAnswer": {
+    "message": "Answer"
+  },
+  "notifyDecline": {
+    "message": "Decline"
+  },
+  "notifyMissedTitle": {
+    "message": "Missed call"
+  },
+  "popupConnected": {
+    "message": "Shared softphone (extension)"
+  },
+  "popupConnecting": {
+    "message": "Connecting to the softphone…"
+  },
+  "popupOpenSoftphone": {
+    "message": "Open CRM"
+  },
+  "popupOptions": {
+    "message": "Options"
+  },
+  "popupHostUnavailable": {
+    "message": "The softphone could not start. Open Options to check the account."
+  },
+  "optionsTitle": {
+    "message": "SipKit settings"
+  },
+  "optionsAccount": {
+    "message": "SIP account"
+  },
+  "optionsAccountHint": {
+    "message": "The extension runs the only softphone of this browser. Pages you allow below use it instead of starting their own."
+  },
+  "optionsEngine": {
+    "message": "Engine"
+  },
+  "optionsEngineSip": {
+    "message": "SIP over WebRTC"
+  },
+  "optionsEngineMock": {
+    "message": "Demo (mock engine, no PBX)"
+  },
+  "optionsServer": {
+    "message": "WebSocket server (wss://)"
+  },
+  "optionsUsername": {
+    "message": "Extension / username"
+  },
+  "optionsPassword": {
+    "message": "Password"
+  },
+  "optionsDomain": {
+    "message": "SIP domain (optional)"
+  },
+  "optionsDisplayName": {
+    "message": "Display name (optional)"
+  },
+  "optionsSecretsHint": {
+    "message": "The password is kept in memory only and forgotten when the browser closes. An approved CRM page can sign in again with a short-lived token."
+  },
+  "optionsMic": {
+    "message": "Allow microphone"
+  },
+  "optionsMicGranted": {
+    "message": "Microphone allowed."
+  },
+  "optionsMicDenied": {
+    "message": "Microphone blocked. Allow it in the browser's site settings for this extension."
+  },
+  "optionsSites": {
+    "message": "Sites"
+  },
+  "optionsAllowedOrigins": {
+    "message": "Pages that may use the softphone (match patterns, one per line)"
+  },
+  "optionsAllowedOriginsHint": {
+    "message": "For example https://crm.example.com/*. New sites ask for permission when you save."
+  },
+  "optionsApprovedOrigins": {
+    "message": "Sites approved to sign in (origins)"
+  },
+  "optionsSoftphoneUrl": {
+    "message": "CRM page opened from the popup"
+  },
+  "optionsBehaviour": {
+    "message": "Behaviour"
+  },
+  "optionsClickToCall": {
+    "message": "Call tel:, sip: and callto: links with the softphone"
+  },
+  "optionsClickToCallHint": {
+    "message": "On sites outside the list above this needs permission for all websites."
+  },
+  "optionsNotifications": {
+    "message": "Show notifications for incoming and missed calls"
+  },
+  "optionsSave": {
+    "message": "Save"
+  },
+  "optionsSaved": {
+    "message": "Saved."
+  },
+  "optionsInvalidPattern": {
+    "message": "Not a valid match pattern: $LIST$",
+    "placeholders": {
+      "list": {
+        "content": "$1"
+      }
+    }
+  },
+  "approveTitle": {
+    "message": "Connect this site?"
+  },
+  "approveQuestion": {
+    "message": "This site wants to sign the shared softphone in with its own credentials:"
+  },
+  "approveHint": {
+    "message": "Only allow sites you trust, such as your CRM. You can remove it later in Options."
+  },
+  "approveAllow": {
+    "message": "Allow"
+  },
+  "approveDeny": {
+    "message": "Don't allow"
+  }
+}

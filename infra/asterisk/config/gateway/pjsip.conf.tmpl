@@ -1,0 +1,113 @@
+; =============================================================================
+; WebRTC <-> SIP gateway (Asterisk as a B2BUA)
+;
+;   browser --SIP/WSS + DTLS-SRTP--> [this gateway] --SIP/UDP + RTP--> upstream PBX
+;
+; The gateway terminates WebRTC (ICE, DTLS-SRTP, opus) and re-originates plain
+; SIP towards an upstream PBX that has no WebRTC support. This file is a
+; TEMPLATE: ${VARS} are filled from environment variables (see .env.example).
+;
+; Model used here: "one browser user <-> one upstream account".
+;   - The browser registers to the gateway as ${GW_BROWSER_USER}.
+;   - The gateway registers to the upstream as ${UPSTREAM_USER}, so the upstream
+;     delivers that account's incoming calls to the gateway, which rings the browser.
+;   - Outgoing calls from the browser are sent to the upstream authenticated as
+;     ${UPSTREAM_USER}.
+; For many users, generate one block per user (or use Kamailio + rtpengine as a
+; transparent proxy instead of a B2BUA; see docs/architecture.md).
+; =============================================================================
+
+[global]
+type=global
+user_agent=sipkit-dev-gateway
+endpoint_identifier_order=username,ip,anonymous
+
+[transport-udp]
+type=transport
+protocol=udp
+bind=0.0.0.0:5060
+local_net=${LOCAL_NET}
+
+[transport-wss]
+type=transport
+protocol=wss
+bind=0.0.0.0
+
+; ---------------------------------------------------------------- browser side
+[${GW_BROWSER_USER}]
+type=aor
+max_contacts=5
+remove_existing=yes
+qualify_frequency=30
+
+[${GW_BROWSER_USER}]
+type=auth
+auth_type=userpass
+username=${GW_BROWSER_USER}
+password=${GW_BROWSER_PASSWORD}
+
+[${GW_BROWSER_USER}]
+type=endpoint
+aors=${GW_BROWSER_USER}
+auth=${GW_BROWSER_USER}
+context=from-browser
+disallow=all
+allow=opus,ulaw,alaw
+webrtc=yes
+dtls_auto_generate_cert=yes
+direct_media=no
+rtp_symmetric=yes
+force_rport=yes
+rewrite_contact=yes
+allow_transfer=yes
+moh_suggest=default
+; Forward X- headers set by the softphone (extraHeaders) to the upstream leg
+; is done in the dialplan (see extensions.conf).
+
+; ---------------------------------------------------------------- upstream trunk
+[upstream-auth]
+type=auth
+auth_type=userpass
+username=${UPSTREAM_USER}
+password=${UPSTREAM_PASSWORD}
+
+[upstream]
+type=registration
+transport=transport-udp
+outbound_auth=upstream-auth
+server_uri=sip:${UPSTREAM_HOST}:${UPSTREAM_PORT}
+client_uri=sip:${UPSTREAM_USER}@${UPSTREAM_DOMAIN}
+contact_user=${UPSTREAM_USER}
+expiration=300
+retry_interval=30
+forbidden_retry_interval=300
+max_retries=10000
+line=yes
+endpoint=upstream
+
+[upstream]
+type=aor
+contact=sip:${UPSTREAM_HOST}:${UPSTREAM_PORT}
+qualify_frequency=60
+
+[upstream]
+type=endpoint
+transport=transport-udp
+context=from-upstream
+disallow=all
+allow=${UPSTREAM_CODECS}
+outbound_auth=upstream-auth
+aors=upstream
+from_user=${UPSTREAM_USER}
+from_domain=${UPSTREAM_DOMAIN}
+direct_media=no
+rtp_symmetric=yes
+force_rport=yes
+rewrite_contact=yes
+dtmf_mode=rfc4733
+send_rpid=yes
+
+[upstream]
+type=identify
+endpoint=upstream
+match=${UPSTREAM_HOST}

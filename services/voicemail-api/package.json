@@ -1,0 +1,20 @@
+{
+  "name": "sipkit-voicemail-api",
+  "version": "0.1.0",
+  "private": true,
+  "description": "HTTP API over the Asterisk app_voicemail file spool: list, stream, mark read, delete (V2-VM-02)",
+  "type": "module",
+  "main": "./dist/index.js",
+  "bin": { "sipkit-voicemail-token": "./dist/mint-token.js" },
+  "engines": { "node": ">=22" },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "start": "node dist/index.js",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit",
+    "token": "node dist/mint-token.js"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.2"
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "jsx": "react-jsx",
+    "noEmit": true,
+    "allowImportingTsExtensions": true,
+    "types": ["vite/client", "node"],
+    "paths": {
+      "@/*": ["../../packages/ui/src/*"],
+      "sipkit-core": ["../../packages/core/dist/index.d.ts", "../../packages/core/src/index.ts"],
+      "sipkit-core/testing": ["../../packages/core/dist/testing/index.d.ts", "../../packages/core/src/testing/index.ts"],
+      "sipkit-react": ["../../packages/react/src/index.ts"],
+      "sipkit-react/testing": ["../../packages/react/src/testing/index.ts"],
+      "sipkit-ui": ["../../packages/ui/src/index.ts"]
+    }
+  },
+  "include": ["src", "e2e", "vite.config.ts", "playwright.config.ts"]
+}
