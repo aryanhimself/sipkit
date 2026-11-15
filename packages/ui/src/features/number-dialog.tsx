@@ -83,6 +83,7 @@ export function NumberDialog({
               autoComplete="off"
               value={value}
               aria-invalid={error ? true : undefined}
+              aria-describedby={error ? `${id}-error` : undefined}
               onChange={(e) => setValue(sanitizeDialInput(e.target.value))}
               onPaste={(e) => {
                 e.preventDefault();
@@ -91,7 +92,7 @@ export function NumberDialog({
               placeholder={t('numberDialog.placeholder')}
             />
             {error && (
-              <p role="alert" className="text-xs text-destructive">
+              <p role="alert" id={`${id}-error`} className="text-xs text-destructive">
                 {error}
               </p>
             )}
@@ -100,7 +101,7 @@ export function NumberDialog({
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
               {t('common.cancel')}
             </Button>
-            <Button type="submit" disabled={!value.trim() || busy}>
+            <Button type="submit" disabled={!value.trim() || busy} aria-busy={busy || undefined}>
               {submitIcon}
               {submitLabel}
             </Button>

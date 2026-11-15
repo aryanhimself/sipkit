@@ -78,7 +78,7 @@ export function ConferencePanel({ className }: { className?: string }) {
             data-testid="conference-split"
             onClick={swallow(() => api.splitConference())}
           >
-            <SplitIcon /> {t('conference.split')}
+            <SplitIcon aria-hidden /> {t('conference.split')}
           </Button>
         )}
         <Button
@@ -89,7 +89,7 @@ export function ConferencePanel({ className }: { className?: string }) {
           title={capabilities.survivesLeave ? t('conference.leaveTitle') : undefined}
           onClick={swallow(() => Promise.all(members.map((c) => api.hangup(c.id))))}
         >
-          <PhoneOffIcon />{' '}
+          <PhoneOffIcon aria-hidden />{' '}
           {capabilities.survivesLeave ? t('conference.leave') : t('conference.end')}
         </Button>
       </div>
@@ -179,7 +179,7 @@ function ConferenceParty({
             }
           }}
         >
-          {muted ? <VolumeXIcon /> : <Volume2Icon />}
+          {muted ? <VolumeXIcon aria-hidden /> : <Volume2Icon aria-hidden />}
         </Button>
       )}
       {capabilities.removeParty && (
@@ -191,7 +191,7 @@ function ConferenceParty({
           title={t('conference.removeTitle')}
           onClick={swallow(() => api.removeFromConference(call.id))}
         >
-          <UserMinusIcon />
+          <UserMinusIcon aria-hidden />
         </Button>
       )}
       {capabilities.hangupParty && (
@@ -203,7 +203,7 @@ function ConferenceParty({
           title={t('conference.hangUpTitle')}
           onClick={swallow(() => api.hangup(call.id))}
         >
-          <PhoneOffIcon />
+          <PhoneOffIcon aria-hidden />
         </Button>
       )}
     </li>

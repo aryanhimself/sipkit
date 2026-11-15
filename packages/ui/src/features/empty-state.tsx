@@ -17,7 +17,7 @@ export function EmptyState({
   return (
     <div className={cn('flex flex-1 flex-col items-center justify-center gap-2 px-6 py-10 text-center', className)}>
       {icon && (
-        <div className="grid size-11 place-items-center rounded-full bg-muted text-muted-foreground [&_svg]:size-5">
+        <div aria-hidden className="grid size-11 place-items-center rounded-full bg-muted text-muted-foreground [&_svg]:size-5">
           {icon}
         </div>
       )}

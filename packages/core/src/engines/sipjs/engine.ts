@@ -12,6 +12,7 @@ import type {
   PresenceEventPackage,
   SoftphoneEngine,
 } from '../../types';
+import { isMediaError } from '../../errors';
 import { SipConnection } from './connection';
 import { buildTargetUri, parseAutoAnswer, pickHeaders, parseInfoDtmf, reasonFromCode, sdpIndicatesHold } from './helpers';
 import { RemoteAudio } from './remote-audio';
@@ -53,8 +54,6 @@ interface Entry {
   video: CallVideo;
 }
 
-const isMediaError = (error: unknown) =>
-  error instanceof Error && /NotAllowed|NotFound|NotReadable|Overconstrained|Permission/i.test(`${error.name} ${error.message}`);
 
 /**
  * SoftphoneEngine on SIP.js 0.21 (UserAgent / Registerer / Inviter /
@@ -496,11 +495,13 @@ export class SipJsEngine implements SoftphoneEngine {
         this.entries.delete(id);
         // SIP.js transitions to Terminated *before* invoking requestDelegate.onReject
         // (Inviter.onReject → stateTransition, then the delegate), so the final
-        // status code isn't known yet. Classify once the current SIP.js callback returns.
-        queueMicrotask(() => {
+        // status code isn't known yet. A getUserMedia failure also terminates the
+        // session before invite()/accept() rejects, so mediaError is only set a few
+        // microtasks later. Classify on the next macrotask, after both have run.
+        setTimeout(() => {
           const { reason, code } = this.endReason(entry);
           this.listener?.onCallProgress(id, { type: 'ended', reason, code });
-        });
+        }, 0);
       }
     });
     return entry;

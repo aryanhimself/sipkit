@@ -1,4 +1,4 @@
-import { useId, useState, type FormEvent, type ReactNode } from 'react';
+import { useId, useRef, useState, type FormEvent, type ReactNode } from 'react';
 import { ChevronDownIcon, Loader2Icon, LogInIcon, ShieldAlertIcon } from 'lucide-react';
 import { useRegistration, useSoftphone } from 'sipkit-react';
 import { Button } from '@/components/ui/button';
@@ -30,16 +30,25 @@ export function LoginForm({ className, showServerFields, footer, onSignedIn }: L
   const [advanced, setAdvanced] = useState(showServerFields ?? !cfg.websocketUrls.length);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [usernameMissing, setUsernameMissing] = useState(false);
+  const usernameRef = useRef<HTMLInputElement>(null);
 
   const failure =
     error ??
     (reg.state === 'failed' ? i18n.registrationFailure(reg.reason, reg.code) : null);
+  // 401 / 403: the credentials are what is wrong, so both fields point at the message.
+  const badCredentials = !usernameMissing && reg.state === 'failed' && (reg.code === 401 || reg.code === 403);
+  const errorId = `${id}-error`;
+  const usernameInvalid = usernameMissing || badCredentials;
 
   async function onSubmit(e: FormEvent) {
     e.preventDefault();
     setError(null);
+    setUsernameMissing(false);
     if (!username.trim()) {
       setError(t('login.usernameRequired'));
+      setUsernameMissing(true);
+      usernameRef.current?.focus();
       return;
     }
     setBusy(true);
@@ -63,7 +72,12 @@ export function LoginForm({ className, showServerFields, footer, onSignedIn }: L
   const pending = busy || reg.isPending;
 
   return (
-    <form onSubmit={onSubmit} className={cn('flex flex-col gap-4 p-5', className)} aria-label={t('login.formLabel')}>
+    <form
+      onSubmit={onSubmit}
+      noValidate
+      className={cn('flex flex-col gap-4 p-5', className)}
+      aria-label={t('login.formLabel')}
+    >
       <div className="space-y-1 pt-2 text-center">
         <h2 className="text-lg font-semibold tracking-tight">{t('login.title', { brand: cfg.brandName })}</h2>
         <p className="text-sm text-muted-foreground">{t('login.subtitle')}</p>
@@ -72,9 +86,10 @@ export function LoginForm({ className, showServerFields, footer, onSignedIn }: L
       {failure && (
         <div
           role="alert"
+          id={errorId}
           className="flex items-start gap-2 rounded-lg border border-destructive/30 bg-destructive/8 px-3 py-2 text-sm text-destructive"
         >
-          <ShieldAlertIcon className="mt-0.5 size-4 shrink-0" />
+          <ShieldAlertIcon className="mt-0.5 size-4 shrink-0" aria-hidden />
           <span>{failure}</span>
         </div>
       )}
@@ -82,11 +97,18 @@ export function LoginForm({ className, showServerFields, footer, onSignedIn }: L
       <div className="grid gap-1.5">
         <Label htmlFor={`${id}-user`}>{t('login.username')}</Label>
         <Input
+          ref={usernameRef}
           id={`${id}-user`}
           name="username"
           autoComplete="username"
+          required
+          aria-invalid={usernameInvalid || undefined}
+          aria-describedby={usernameInvalid && failure ? errorId : undefined}
           value={username}
-          onChange={(e) => setUsername(e.target.value)}
+          onChange={(e) => {
+            setUsername(e.target.value);
+            if (usernameMissing && e.target.value.trim()) setUsernameMissing(false);
+          }}
           placeholder={t('login.usernamePlaceholder')}
           autoFocus
         />
@@ -98,6 +120,8 @@ export function LoginForm({ className, showServerFields, footer, onSignedIn }: L
           name="password"
           type="password"
           autoComplete="current-password"
+          aria-invalid={badCredentials || undefined}
+          aria-describedby={badCredentials ? errorId : undefined}
           value={password}
           onChange={(e) => setPassword(e.target.value)}
         />
@@ -105,12 +129,12 @@ export function LoginForm({ className, showServerFields, footer, onSignedIn }: L
 
       <button
         type="button"
-        className="-my-1 flex items-center gap-1 self-start rounded text-xs font-medium text-muted-foreground outline-none hover:text-foreground focus-visible:ring-[3px] focus-visible:ring-ring"
+        className="-my-1 flex min-h-6 items-center gap-1 self-start rounded text-xs font-medium text-muted-foreground outline-none hover:text-foreground focus-visible:ring-[3px] focus-visible:ring-ring"
         aria-expanded={advanced}
         aria-controls={`${id}-server`}
         onClick={() => setAdvanced((v) => !v)}
       >
-        <ChevronDownIcon className={cn('size-3.5 transition-transform', advanced && 'rotate-180')} />
+        <ChevronDownIcon className={cn('size-3.5 transition-transform', advanced && 'rotate-180')} aria-hidden />
         {t('login.serverSettings')}
       </button>
       {advanced && (
@@ -139,8 +163,8 @@ export function LoginForm({ className, showServerFields, footer, onSignedIn }: L
         </div>
       )}
 
-      <Button type="submit" size="lg" disabled={pending} className="mt-1 w-full">
-        {pending ? <Loader2Icon className="animate-spin" /> : <LogInIcon />}
+      <Button type="submit" size="lg" disabled={pending} aria-busy={pending || undefined} className="mt-1 w-full">
+        {pending ? <Loader2Icon className="animate-spin" aria-hidden /> : <LogInIcon aria-hidden />}
         {pending ? t('login.submitting') : t('login.submit')}
       </Button>
       {footer}

@@ -68,8 +68,13 @@ export const configSchema = z.object({
   iceGatheringTimeoutMs: z.number().int().min(100).default(2000),
 
   // --- call behaviour ------------------------------------------------------------
-  /** Prefix prepended to every dialed number. */
+  /** Prefix prepended to dialed numbers (e.g. `9` or `0` for an outside line). Never added to SIP URIs. */
   techPrefix: z.string().default(''),
+  /**
+   * Only add {@link techPrefix} when the number has at least this many digits, so short
+   * internal extensions (e.g. `1001`) are dialled as-is. `0` = always add it.
+   */
+  techPrefixMinDigits: z.number().int().min(0).max(32).default(0),
   /** Strip spaces, dashes, brackets from dialed numbers. */
   normalizeNumbers: z.boolean().default(true),
   /** DTMF method. `auto` picks the best method the call supports. */

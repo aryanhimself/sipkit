@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type ReactNode, type Ref } from 'react';
 import {
   ArrowRightLeftIcon,
   CheckIcon,
@@ -71,6 +71,8 @@ export function CallScreen({ call, className }: CallScreenProps) {
   const [transferOpen, setTransferOpen] = useState(false);
   const [addOpen, setAddOpen] = useState(false);
   const sectionRef = useRef<HTMLElement>(null);
+  const keypadButtonRef = useRef<HTMLButtonElement>(null);
+  const keypadWasOpen = useRef(false);
   const camera = useCameraToggle(call);
 
   // Keep keyboard focus inside the widget when the call screen replaces the dialpad
@@ -123,6 +125,12 @@ export function CallScreen({ call, className }: CallScreenProps) {
     if (!connected) setKeypad(false);
   }, [connected]);
 
+  // Closing the in-call keypad returns focus to the Keypad button instead of dropping it.
+  useEffect(() => {
+    if (keypadWasOpen.current && !keypad) keypadButtonRef.current?.focus({ preventScroll: true });
+    keypadWasOpen.current = keypad;
+  }, [keypad]);
+
   const run = (fn: () => Promise<unknown> | void) => () => {
     void Promise.resolve()
       .then(fn)
@@ -163,7 +171,7 @@ export function CallScreen({ call, className }: CallScreenProps) {
         </Badge>
         {call.muted && (
           <Badge variant="destructive" className="absolute top-3 end-3">
-            <MicOffIcon /> {t('call.muted')}
+            <MicOffIcon aria-hidden /> {t('call.muted')}
           </Badge>
         )}
         {!(camera.visible && call.hasVideo && !call.inConference) && (
@@ -180,7 +188,6 @@ export function CallScreen({ call, className }: CallScreenProps) {
             'text-sm font-medium tabular-nums',
             held ? 'text-warning-foreground dark:text-warning' : connected ? 'text-success' : 'text-muted-foreground',
           )}
-          aria-live="polite"
           data-testid="call-status"
         >
           {callStatusText(call, i18n.duration(timer.elapsedMs), conferenceSize, t)}
@@ -197,7 +204,7 @@ export function CallScreen({ call, className }: CallScreenProps) {
           aria-label={t('transfer.attendedRegion')}
           className="mx-3 mb-2 flex shrink-0 items-center gap-2 rounded-lg border border-primary/25 bg-primary/6 px-3 py-2 text-xs"
         >
-          <ArrowRightLeftIcon className="size-4 shrink-0 text-primary" />
+          <ArrowRightLeftIcon className="size-4 shrink-0 text-primary" aria-hidden />
           <span className="min-w-0 flex-1 truncate">
             {i18n.rich('transfer.attendedSummary', {
               from: <b>{callTitle(consultOriginal)}</b>,
@@ -213,7 +220,7 @@ export function CallScreen({ call, className }: CallScreenProps) {
               ui.setConsult(null);
             })}
           >
-            <CheckIcon /> {t('transfer.complete')}
+            <CheckIcon aria-hidden /> {t('transfer.complete')}
           </Button>
           <Button
             size="icon-sm"
@@ -225,7 +232,7 @@ export function CallScreen({ call, className }: CallScreenProps) {
               await api.hangup(consultActive.consultId);
             })}
           >
-            <XIcon />
+            <XIcon aria-hidden />
           </Button>
         </div>
       )}
@@ -242,17 +249,23 @@ export function CallScreen({ call, className }: CallScreenProps) {
               label={call.muted ? t('controls.unmute') : t('controls.mute')}
               pressed={call.muted}
               disabled={!connected}
-              icon={call.muted ? <MicOffIcon /> : <MicIcon />}
+              icon={call.muted ? <MicOffIcon aria-hidden /> : <MicIcon aria-hidden />}
               onClick={() => api.mute(!call.muted, call.id)}
             />
             <ActionButton
               label={held ? t('controls.resume') : t('controls.hold')}
               pressed={held}
               disabled={!connected || inConferenceView}
-              icon={held ? <PlayIcon /> : <PauseIcon />}
+              icon={held ? <PlayIcon aria-hidden /> : <PauseIcon aria-hidden />}
               onClick={run(() => api.hold(!held, call.id))}
             />
-            <ActionButton label={t('controls.keypad')} disabled={!connected} icon={<GridIcon />} onClick={() => setKeypad(true)} />
+            <ActionButton
+              label={t('controls.keypad')}
+              disabled={!connected}
+              icon={<GridIcon aria-hidden />}
+              onClick={() => setKeypad(true)}
+              buttonRef={keypadButtonRef}
+            />
             {camera.visible && (
               <ActionButton
                 label={camera.label}
@@ -266,7 +279,7 @@ export function CallScreen({ call, className }: CallScreenProps) {
               <ActionButton
                 label={t('controls.transfer')}
                 disabled={!connected}
-                icon={<PhoneForwardedIcon />}
+                icon={<PhoneForwardedIcon aria-hidden />}
                 onClick={() => setTransferOpen(true)}
               />
             )}
@@ -274,12 +287,12 @@ export function CallScreen({ call, className }: CallScreenProps) {
               <ActionButton
                 label={t('controls.addCall')}
                 disabled={!connected || liveCount >= cfg.maxLines}
-                icon={<UserPlusIcon />}
+                icon={<UserPlusIcon aria-hidden />}
                 onClick={() => setAddOpen(true)}
               />
             )}
             {canConference && liveCount > 1 && (
-              <ActionButton label={t('controls.merge')} disabled={!canMerge} icon={<MergeIcon />} onClick={run(() => api.conference())} />
+              <ActionButton label={t('controls.merge')} disabled={!canMerge} icon={<MergeIcon aria-hidden />} onClick={run(() => api.conference())} />
             )}
             {ctx &&
               extActions.map((a) => (
@@ -310,9 +323,10 @@ export function CallScreen({ call, className }: CallScreenProps) {
             variant="call-end"
             className="size-14 rounded-full shadow-md [&_svg:not([class*='size-'])]:size-6"
             aria-label={t('controls.hangUp')}
+            aria-keyshortcuts="Escape"
             onClick={run(() => api.hangup(call.id))}
           >
-            <PhoneOffIcon />
+            <PhoneOffIcon aria-hidden />
           </Button>
         </div>
       </div>
@@ -325,7 +339,7 @@ export function CallScreen({ call, className }: CallScreenProps) {
           title={t('addCall.title')}
           description={t('addCall.description')}
           submitLabel={t('addCall.submit')}
-          submitIcon={<PhoneIcon />}
+          submitIcon={<PhoneIcon aria-hidden />}
           onSubmit={async (n) => {
             await api.call(n);
           }}
@@ -341,15 +355,18 @@ export function ActionButton({
   pressed,
   disabled,
   onClick,
+  buttonRef,
 }: {
   label: string;
   icon: ReactNode;
   pressed?: boolean;
   disabled?: boolean;
   onClick: () => void;
+  buttonRef?: Ref<HTMLButtonElement>;
 }) {
   return (
     <button
+      ref={buttonRef}
       type="button"
       aria-label={label}
       aria-pressed={pressed === undefined ? undefined : pressed}
@@ -358,6 +375,7 @@ export function ActionButton({
       className="group flex flex-col items-center gap-1.5 outline-none disabled:cursor-not-allowed disabled:opacity-40"
     >
       <span
+        aria-hidden
         className={cn(
           'grid size-14 place-items-center rounded-full bg-secondary text-secondary-foreground transition-colors [&_svg]:size-5',
           'group-hover:bg-accent group-focus-visible:ring-[3px] group-focus-visible:ring-ring group-disabled:group-hover:bg-secondary',
@@ -366,7 +384,9 @@ export function ActionButton({
       >
         {icon}
       </span>
-      <span className="text-xs font-medium text-muted-foreground">{label}</span>
+      <span aria-hidden className="text-xs font-medium text-muted-foreground">
+        {label}
+      </span>
     </button>
   );
 }

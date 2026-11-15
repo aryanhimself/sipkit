@@ -42,3 +42,11 @@ export function toEngineError(error: unknown, action: string): SoftphoneError {
   const detail = error instanceof Error ? error.message : String(error);
   return new SoftphoneError('ENGINE_ERROR', `${action} failed: ${detail}`, { cause: error });
 }
+
+/** True for getUserMedia failures: permission denied, no device, device busy, bad constraints. */
+export function isMediaError(error: unknown): boolean {
+  return (
+    error instanceof Error &&
+    /NotAllowed|NotFound|NotReadable|Overconstrained|Permission/i.test(`${error.name} ${error.message}`)
+  );
+}

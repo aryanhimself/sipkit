@@ -18,7 +18,10 @@ describe('numbers', () => {
     expect(normalizeNumber('+1 (555) 12-34.5/6')).toBe('+1555123456');
     expect(normalizeNumber('sip:x@y')).toBe('sip:x@y');
     expect(applyTechPrefix('100', '9')).toBe('9100');
-    expect(applyTechPrefix('9100', '9')).toBe('9100');
+    expect(applyTechPrefix('9842477272', '9')).toBe('99842477272');
+    expect(applyTechPrefix('1001', '9', 7)).toBe('1001');
+    expect(applyTechPrefix('9842477272', '0', 7)).toBe('09842477272');
+    expect(applyTechPrefix('sip:1001@pbx', '9')).toBe('sip:1001@pbx');
     expect(applyTechPrefix('sip:a@b', '9')).toBe('sip:a@b');
     expect(applyTechPrefix('100', '')).toBe('100');
     expect(isSipUri('SIPS:a@b')).toBe(true);

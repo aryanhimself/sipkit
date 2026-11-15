@@ -95,7 +95,7 @@ export function ContactsList({ className, onCall }: ContactsListProps) {
   return (
     <div className={cn('flex min-h-0 flex-1 flex-col', className)}>
       <div className="relative px-3 pt-3 pb-2">
-        <SearchIcon className="pointer-events-none absolute top-1/2 start-5.5 mt-0.5 size-4 -translate-y-1/2 text-muted-foreground" />
+        <SearchIcon className="pointer-events-none absolute top-1/2 start-5.5 mt-0.5 size-4 -translate-y-1/2 text-muted-foreground" aria-hidden />
         <Input
           type="search"
           aria-label={t('contacts.search')}
@@ -106,9 +106,9 @@ export function ContactsList({ className, onCall }: ContactsListProps) {
         />
       </div>
       {contacts.length === 0 ? (
-        <EmptyState icon={<UsersIcon />} title={t('contacts.emptyTitle')} description={t('contacts.emptyDescription')} />
+        <EmptyState icon={<UsersIcon aria-hidden />} title={t('contacts.emptyTitle')} description={t('contacts.emptyDescription')} />
       ) : filtered.length === 0 ? (
-        <EmptyState icon={<SearchIcon />} title={t('contacts.noMatches')} description={t('contacts.noMatchesDescription', { query })} />
+        <EmptyState icon={<SearchIcon aria-hidden />} title={t('contacts.noMatches')} description={t('contacts.noMatchesDescription', { query })} />
       ) : (
         <ScrollArea className="min-h-0 flex-1">
           <ul className="px-2 pb-2" aria-label={t('contacts.listLabel')}>
@@ -140,7 +140,7 @@ export function ContactsList({ className, onCall }: ContactsListProps) {
                       aria-label={t('chat.message', { name: c.name })}
                       onClick={() => openChat(c.number)}
                     >
-                      <MessageSquareIcon />
+                      <MessageSquareIcon aria-hidden />
                     </Button>
                   )}
                   <Button
@@ -151,7 +151,7 @@ export function ContactsList({ className, onCall }: ContactsListProps) {
                     disabled={!reg.isRegistered}
                     onClick={() => dial(c.number)}
                   >
-                    <PhoneIcon />
+                    <PhoneIcon aria-hidden />
                   </Button>
                 </div>
               </li>

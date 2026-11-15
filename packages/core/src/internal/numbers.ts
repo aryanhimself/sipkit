@@ -35,7 +35,10 @@ export function normalizeNumber(value: string): string {
 }
 
 /** Prepend the tech prefix unless empty, already present, or a SIP URI. */
-export function applyTechPrefix(value: string, prefix: string): string {
-  if (!prefix || isSipUri(value) || value.startsWith(prefix)) return value;
+export function applyTechPrefix(value: string, prefix: string, minDigits = 0): string {
+  // No "already starts with the prefix" shortcut: with prefix 9, 98xxxxxxxx is a
+  // number that genuinely starts with 9 and still needs the prefix.
+  if (!prefix || isSipUri(value)) return value;
+  if (minDigits > 0 && value.replace(/\D/g, '').length < minDigits) return value;
   return prefix + value;
 }

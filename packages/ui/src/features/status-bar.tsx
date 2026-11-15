@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react';
+import { useId, type ReactNode } from 'react';
 import { LogOutIcon, MoonIcon, MoreVerticalIcon, RefreshCwIcon, SunIcon, MonitorIcon } from 'lucide-react';
 import type { RegistrationState } from 'sipkit-core';
 import { useRegistration, useSoftphone, useSoftphoneSnapshot } from 'sipkit-react';
@@ -8,6 +8,8 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuLabel,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
@@ -33,7 +35,11 @@ const RESUMING_PILL: { label: MessageKey; dot: string; text: string } = {
   text: 'text-foreground',
 };
 
-/** Registration status pill with the engine name in a tooltip. */
+/**
+ * Registration status pill with the engine name in a tooltip. Not a live
+ * region itself: CallAnnouncer reads registration changes once, so they are
+ * not announced twice.
+ */
 export function RegistrationPill({ className }: { className?: string }) {
   const reg = useRegistration();
   const engine = useSoftphoneSnapshot((s) => s.engine);
@@ -50,7 +56,7 @@ export function RegistrationPill({ className }: { className?: string }) {
       <TooltipTrigger asChild>
         <span
           role="status"
-          aria-live="polite"
+          aria-live="off"
           aria-label={
             detail
               ? t('registration.ariaLabelDetail', { status: label, detail })
@@ -66,7 +72,7 @@ export function RegistrationPill({ className }: { className?: string }) {
             className,
           )}
         >
-          <span className={cn('size-2 rounded-full', pill.dot)} aria-hidden />
+          <span className={cn('size-2 rounded-full motion-reduce:animate-none', pill.dot)} aria-hidden />
           {label}
         </span>
       </TooltipTrigger>
@@ -92,6 +98,7 @@ export function StatusBar({ className, actions }: StatusBarProps) {
   useSoftphoneSnapshot();
   const { theme, setTheme } = useSoftphoneUI();
   const t = useT();
+  const themeLabelId = useId();
   const { brandName, username, domain } = api.config;
   const signedIn = reg.state !== 'idle' && reg.state !== 'unregistered';
 
@@ -128,20 +135,26 @@ export function StatusBar({ className, actions }: StatusBarProps) {
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button variant="ghost" size="icon-sm" aria-label={t('menu.account')}>
-            <MoreVerticalIcon />
+            <MoreVerticalIcon aria-hidden />
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="w-52">
-          <DropdownMenuLabel>{t('menu.theme')}</DropdownMenuLabel>
-          <DropdownMenuItem onSelect={() => setTheme('light')} aria-checked={theme === 'light'}>
-            <SunIcon /> {t('theme.light')} {theme === 'light' && <span className="ms-auto text-xs">✓</span>}
-          </DropdownMenuItem>
-          <DropdownMenuItem onSelect={() => setTheme('dark')} aria-checked={theme === 'dark'}>
-            <MoonIcon /> {t('theme.dark')} {theme === 'dark' && <span className="ms-auto text-xs">✓</span>}
-          </DropdownMenuItem>
-          <DropdownMenuItem onSelect={() => setTheme('system')} aria-checked={theme === 'system'}>
-            <MonitorIcon /> {t('theme.system')} {theme === 'system' && <span className="ms-auto text-xs">✓</span>}
-          </DropdownMenuItem>
+          <DropdownMenuLabel id={themeLabelId}>{t('menu.theme')}</DropdownMenuLabel>
+          <DropdownMenuRadioGroup
+            aria-labelledby={themeLabelId}
+            value={theme}
+            onValueChange={(v) => setTheme(v as typeof theme)}
+          >
+            <DropdownMenuRadioItem value="light">
+              <SunIcon aria-hidden /> {t('theme.light')}
+            </DropdownMenuRadioItem>
+            <DropdownMenuRadioItem value="dark">
+              <MoonIcon aria-hidden /> {t('theme.dark')}
+            </DropdownMenuRadioItem>
+            <DropdownMenuRadioItem value="system">
+              <MonitorIcon aria-hidden /> {t('theme.system')}
+            </DropdownMenuRadioItem>
+          </DropdownMenuRadioGroup>
           <DropdownMenuSeparator />
           <DropdownMenuItem
             disabled={!username}
@@ -149,7 +162,7 @@ export function StatusBar({ className, actions }: StatusBarProps) {
               void api.register().catch(() => undefined);
             }}
           >
-            <RefreshCwIcon /> {t('menu.reconnect')}
+            <RefreshCwIcon aria-hidden /> {t('menu.reconnect')}
           </DropdownMenuItem>
           {signedIn && (
             <DropdownMenuItem
@@ -158,7 +171,7 @@ export function StatusBar({ className, actions }: StatusBarProps) {
                 void api.unregister().catch(() => undefined);
               }}
             >
-              <LogOutIcon className="text-destructive" /> {t('menu.signOut')}
+              <LogOutIcon className="text-destructive" aria-hidden /> {t('menu.signOut')}
             </DropdownMenuItem>
           )}
         </DropdownMenuContent>

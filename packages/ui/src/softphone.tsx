@@ -39,14 +39,17 @@ import type {
   SoftphoneSlots,
 } from '@/extensions';
 import { createHistoryStore, type HistoryStore } from '@/history-store';
+import { applySavedDialPrefs } from '@/lib/dial-prefs';
 import { createI18n, I18nContext } from '@/i18n/context';
 import type { Messages } from '@/i18n/en';
 import { localesVersion, subscribeLocales } from '@/i18n/locales';
+import { AnnouncerProvider } from '@/lib/announcer';
 import { playDtmfTone } from '@/lib/dtmf-tones';
 import { isFeatureEnabled } from '@/lib/features';
 import { PortalContext, type PortalEnvironment } from '@/lib/portal';
 import { cn } from '@/lib/utils';
 import { themeTokensToCssVars, type ThemeTokenOverrides } from '@/theme/tokens';
+import { CallAnnouncer, CallFailureAlert, type CallFailureNotice } from '@/features/call-announcer';
 import { CallHistory } from '@/features/call-history';
 import { ChatPanel, ChatUnreadBadge } from '@/features/chat';
 import { CallScreen } from '@/features/call-screen';
@@ -221,10 +224,17 @@ function SoftphoneView({
     return () => store.dispose();
   }, [api, historyKey]);
 
+  // ---- saved dialing preferences (Settings → Dialing) -----------------------
+  useEffect(() => {
+    applySavedDialPrefs(api).catch(() => undefined);
+  }, [api, cfg.username]);
+
   // ---- UI state -------------------------------------------------------------
   const [dialValue, setDialValue] = useState('');
   const [consult, setConsult] = useState<ConsultPair | null>(null);
   const [chatPeer, setChatPeer] = useState<string | null>(null);
+  /** Last call that did not go through (busy, 404, blocked microphone…), until dismissed or the next call. */
+  const [failure, setFailure] = useState<CallFailureNotice | null>(null);
 
   const calls = snapshot.calls.filter(isLiveCall);
   const activeCall = snapshot.calls.find((c) => c.id === snapshot.activeCallId) ?? null;
@@ -238,18 +248,18 @@ function SoftphoneView({
   const voicemailList = isVoicemailListEnabled(cfg) && typeof api.refreshVoicemails === 'function';
   const tabs = useMemo<TabDef[]>(() => {
     const list: TabDef[] = [];
-    if (!full) list.push({ id: 'phone', label: t('tab.phone'), icon: <PhoneIcon />, order: 0, render: () => null });
+    if (!full) list.push({ id: 'phone', label: t('tab.phone'), icon: <PhoneIcon aria-hidden />, order: 0, render: () => null });
     if (isFeatureEnabled(cfg, 'history'))
-      list.push({ id: 'history', label: t('tab.history'), icon: <HistoryIcon />, order: 10, render: () => <CallHistory onCall={dialRef.current} /> });
+      list.push({ id: 'history', label: t('tab.history'), icon: <HistoryIcon aria-hidden />, order: 10, render: () => <CallHistory onCall={dialRef.current} /> });
     if (isFeatureEnabled(cfg, 'contacts'))
-      list.push({ id: 'contacts', label: t('tab.contacts'), icon: <UsersIcon />, order: 20, render: () => <ContactsList onCall={dialRef.current} /> });
+      list.push({ id: 'contacts', label: t('tab.contacts'), icon: <UsersIcon aria-hidden />, order: 20, render: () => <ContactsList onCall={dialRef.current} /> });
     if (cfg.presence.enabled && isFeatureEnabled(cfg, 'presence'))
-      list.push({ id: 'blf', label: t('tab.blf'), icon: <LayoutGridIcon />, order: 25, render: () => <BlfPanel onCall={dialRef.current} /> });
+      list.push({ id: 'blf', label: t('tab.blf'), icon: <LayoutGridIcon aria-hidden />, order: 25, render: () => <BlfPanel onCall={dialRef.current} /> });
     if (cfg.chat.enabled && isFeatureEnabled(cfg, 'chat'))
-      list.push({ id: 'chat', label: t('tab.chat'), icon: <MessagesSquareIcon />, order: 15, badge: <ChatUnreadBadge />, render: () => <ChatPanel onCall={dialRef.current} /> });
+      list.push({ id: 'chat', label: t('tab.chat'), icon: <MessagesSquareIcon aria-hidden />, order: 15, badge: <ChatUnreadBadge />, render: () => <ChatPanel onCall={dialRef.current} /> });
     // Voicemail list (V2-VM-02): needs voicemail.api and a softphone that implements it.
     if (voicemailList && isFeatureEnabled(cfg, 'voicemail'))
-      list.push({ id: 'voicemail', label: t('tab.voicemail'), icon: <VoicemailIcon />, order: 18, badge: <VoicemailTabBadge />, render: () => <VoicemailPanel onCall={dialRef.current} /> });
+      list.push({ id: 'voicemail', label: t('tab.voicemail'), icon: <VoicemailIcon aria-hidden />, order: 18, badge: <VoicemailTabBadge />, render: () => <VoicemailPanel onCall={dialRef.current} /> });
     for (const t of extensions.tabs ?? []) {
       list.push({
         id: t.id,
@@ -260,7 +270,7 @@ function SoftphoneView({
       });
     }
     if (isFeatureEnabled(cfg, 'settings'))
-      list.push({ id: 'settings', label: t('tab.settings'), icon: <SettingsIcon />, order: 100, render: () => <Settings /> });
+      list.push({ id: 'settings', label: t('tab.settings'), icon: <SettingsIcon aria-hidden />, order: 100, render: () => <Settings /> });
     return list.sort((a, b) => a.order - b.order);
     // cfg identity changes on updateConfig; disabledFeatures is what matters.
   }, [full, cfg.disabledFeatures.join('|'), cfg.presence.enabled, cfg.chat.enabled, voicemailList, extensions.tabs, t]);
@@ -406,6 +416,13 @@ function SoftphoneView({
   const ctx = renderContext();
   const phoneView = (
     <div className="flex min-h-0 flex-1 flex-col">
+      {failure && (
+        <CallFailureAlert
+          notice={failure}
+          onDismiss={() => setFailure(null)}
+          onRetry={snapshot.registration.state === 'registered' ? dial : undefined}
+        />
+      )}
       {ringing[0] && established.length === 0 ? (
         <IncomingCallCard call={ringing[0]} variant="full" />
       ) : (
@@ -418,7 +435,7 @@ function SoftphoneView({
           ) : (
             <div className="flex min-h-0 flex-1 flex-col justify-center gap-2 overflow-y-auto px-4 pt-2 pb-5">
               {slots.idleBanner?.(ctx)}
-              <Dialpad onCall={dial} autoFocus={!full} />
+              <Dialpad onCall={dial} autoFocus={full ? false : 'if-idle'} />
             </div>
           )}
         </>
@@ -430,7 +447,7 @@ function SoftphoneView({
   const renderPanels = (list: PanelExtension[]) =>
     list.map((p) => (
       <section key={p.id} aria-label={p.title ?? p.id} className="rounded-xl border bg-card p-3 shadow-xs">
-        {p.title && <h3 className="mb-2 text-xs font-semibold tracking-wide text-muted-foreground uppercase">{p.title}</h3>}
+        {p.title && <h2 className="mb-2 text-xs font-semibold tracking-wide text-muted-foreground uppercase">{p.title}</h2>}
         {p.render(ctx)}
       </section>
     ));
@@ -467,6 +484,8 @@ function SoftphoneView({
             )}
             style={rootStyle}
           >
+            <AnnouncerProvider>
+            <CallAnnouncer onFailure={setFailure} />
             <StatusBar actions={slots.headerActions?.(ctx)} />
             {!loginView && <PushPrompt />}
 
@@ -557,6 +576,7 @@ function SoftphoneView({
             {toaster && <SoftphoneToaster theme={resolvedTheme} dir={i18n.dir} />}
             {/* Portal host for dialogs, menus and tooltips (stays inside theme scope / shadow root). */}
             <div ref={portalRef} data-slot="portal-host" />
+            </AnnouncerProvider>
           </div>
         </TooltipProvider>
       </PortalContext.Provider>

@@ -88,7 +88,7 @@ export function VoicemailPanel({ className, onCall }: VoicemailPanelProps) {
     <div className={cn('flex min-h-0 flex-1 flex-col', className)} data-testid="voicemail-panel" data-status={vm.status}>
       <div className="flex items-center justify-between gap-2 px-4 pt-3 pb-1">
         <div className="min-w-0">
-          <h3 className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">{t('voicemailList.title')}</h3>
+          <h2 className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">{t('voicemailList.title')}</h2>
           <p className="truncate text-xs text-muted-foreground" data-testid="voicemail-counts" data-new={vm.counts.new} data-old={vm.counts.old}>
             {t('voicemailList.counts', { new: i18n.number(vm.counts.new), old: i18n.number(vm.counts.old) })}
           </p>
@@ -101,7 +101,7 @@ export function VoicemailPanel({ className, onCall }: VoicemailPanelProps) {
           disabled={vm.status === 'loading'}
           onClick={() => run(vm.refresh())}
         >
-          <RotateCwIcon className={cn(vm.status === 'loading' && 'animate-spin')} />
+          <RotateCwIcon className={cn(vm.status === 'loading' && 'animate-spin')} aria-hidden />
         </Button>
       </div>
 
@@ -109,7 +109,7 @@ export function VoicemailPanel({ className, onCall }: VoicemailPanelProps) {
         <div role="alert" className="mx-3 mb-2 flex items-center justify-between gap-2 rounded-md bg-destructive/10 px-3 py-2 text-xs text-destructive" data-testid="voicemail-error">
           <span>{vm.status === 'error' ? errorText(i18n, vm.error) : t('voicemailList.actionFailed')}</span>
           {vm.status === 'error' && (
-            <Button variant="ghost" size="sm" className="h-6 px-2 text-destructive" onClick={() => run(vm.refresh())}>
+            <Button variant="ghost" size="sm" className="h-7 px-2 text-destructive" onClick={() => run(vm.refresh())}>
               {t('voicemailList.retry')}
             </Button>
           )}
@@ -117,10 +117,10 @@ export function VoicemailPanel({ className, onCall }: VoicemailPanelProps) {
       )}
 
       {loadingFirst ? (
-        <EmptyState icon={<LoaderCircleIcon className="animate-spin" />} title={t('voicemailList.loading')} />
+        <EmptyState icon={<LoaderCircleIcon className="animate-spin" aria-hidden />} title={t('voicemailList.loading')} />
       ) : vm.messages.length === 0 ? (
         vm.status !== 'error' && (
-          <EmptyState icon={<VoicemailIcon />} title={t('voicemailList.emptyTitle')} description={t('voicemailList.emptyDescription')} />
+          <EmptyState icon={<VoicemailIcon aria-hidden />} title={t('voicemailList.emptyTitle')} description={t('voicemailList.emptyDescription')} />
         )
       ) : (
         <ScrollArea className="min-h-0 flex-1">
@@ -183,7 +183,7 @@ export function VoicemailPanel({ className, onCall }: VoicemailPanelProps) {
                       title={m.hasAudio ? undefined : t('voicemailList.noAudio')}
                       onClick={() => (playing ? player.stop() : run(player.load(m.id)))}
                     >
-                      {playing && player.status === 'loading' ? <LoaderCircleIcon className="animate-spin" /> : playing ? <PauseIcon /> : <PlayIcon />}
+                      {playing && player.status === 'loading' ? <LoaderCircleIcon className="animate-spin" aria-hidden /> : playing ? <PauseIcon aria-hidden /> : <PlayIcon aria-hidden />}
                     </Button>
                     {isNew && (
                       <Button
@@ -194,7 +194,7 @@ export function VoicemailPanel({ className, onCall }: VoicemailPanelProps) {
                         disabled={busy}
                         onClick={() => run(vm.markRead(m.id))}
                       >
-                        <CheckIcon />
+                        <CheckIcon aria-hidden />
                       </Button>
                     )}
                     {m.callerNumber && (
@@ -207,7 +207,7 @@ export function VoicemailPanel({ className, onCall }: VoicemailPanelProps) {
                         disabled={!reg.isRegistered}
                         onClick={() => dial(m.callerNumber!)}
                       >
-                        <PhoneIcon />
+                        <PhoneIcon aria-hidden />
                       </Button>
                     )}
                     <Button
@@ -220,7 +220,7 @@ export function VoicemailPanel({ className, onCall }: VoicemailPanelProps) {
                       disabled={busy}
                       onClick={() => setConfirmId(confirming ? null : m.id)}
                     >
-                      <Trash2Icon />
+                      <Trash2Icon aria-hidden />
                     </Button>
                   </div>
 

@@ -1,6 +1,6 @@
 import type { ResolvedConfig } from '../config';
 import type { AnswerOptions, Call, CallId, CallOptions, EngineCallInfo, EngineListener, HoldState, Logger, SoftphoneEngine, SoftphoneEvents } from '../types';
-import { SoftphoneError, toEngineError } from '../errors';
+import { SoftphoneError, isMediaError, toEngineError } from '../errors';
 import type { CallRecord, CallRegistry } from './call-registry';
 import type { ConferenceController } from './conference';
 import type { PluginHost } from './plugin-host';
@@ -116,7 +116,7 @@ export class CallCore {
     const normalized = this.cfg.normalizeNumbers ? normalizeNumber(number) : number.trim();
     const display = (await this.d.plugins.beforeDial(normalized)).trim();
     if (!display) throw new SoftphoneError('INVALID_NUMBER', 'Number is empty');
-    return { target: applyTechPrefix(display, this.cfg.techPrefix), display, postDial };
+    return { target: applyTechPrefix(display, this.cfg.techPrefix, this.cfg.techPrefixMinDigits), display, postDial };
   }
 
   // ------------------------------------------------------------ outgoing
@@ -150,7 +150,9 @@ export class CallCore {
       const opts = { ...(extraHeaders ? { extraHeaders } : {}), ...(video ? { video: true } : {}) };
       await this.d.engine.call(record.engineId, target, Object.keys(opts).length ? opts : undefined);
     } catch (error) {
-      this.end(id, 'failed');
+      const media = isMediaError(error);
+      this.d.logger.warn(media ? 'Outgoing call failed: no microphone access' : 'Outgoing call failed', error);
+      this.end(id, media ? 'media-error' : 'failed');
       throw toEngineError(error, 'Call');
     }
     return this.d.calls.get(id)?.call ?? record.call;

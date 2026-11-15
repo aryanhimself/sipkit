@@ -49,7 +49,7 @@ export function VoicemailBadge({ className, onCall }: VoicemailBadgeProps) {
             );
           }}
         >
-          <VoicemailIcon />
+          <VoicemailIcon aria-hidden />
           {(count > 0 || vm.waiting) && (
             <span
               aria-hidden

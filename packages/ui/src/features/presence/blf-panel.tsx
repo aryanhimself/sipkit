@@ -32,7 +32,7 @@ export function BlfPanel({ className, onCall }: BlfPanelProps) {
     return (
       <EmptyState
         className={className}
-        icon={<LayoutGridIcon />}
+        icon={<LayoutGridIcon aria-hidden />}
         title={t('blf.emptyTitle')}
         description={t('blf.emptyDescription')}
       />
@@ -111,7 +111,7 @@ function BlfTile({
           onClick={onPickup}
           data-testid="blf-pickup"
         >
-          <PhoneIncomingIcon />
+          <PhoneIncomingIcon aria-hidden />
           {t('blf.pickup')}
         </Button>
       )}

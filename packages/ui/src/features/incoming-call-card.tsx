@@ -1,9 +1,11 @@
+import { useEffect, useRef } from 'react';
 import { PhoneIcon, PhoneOffIcon, VideoIcon } from 'lucide-react';
 import type { Call } from 'sipkit-core';
 import { useSoftphone } from 'sipkit-react';
 import { Button } from '@/components/ui/button';
 import { useSoftphoneUI } from '@/context';
 import { useT } from '@/i18n/context';
+import { useAnnounce } from '@/lib/announcer';
 import { callTitle, formatNumber } from '@/lib/format';
 import { cn } from '@/lib/utils';
 import { CallAvatar } from './call-avatar';
@@ -17,7 +19,19 @@ export interface IncomingCallCardProps {
   className?: string;
 }
 
-/** Ringing incoming call with Answer / Decline (Enter / Esc). */
+function isEditable(el: Element | null): boolean {
+  if (!el) return false;
+  return el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.tagName === 'SELECT' || (el as HTMLElement).isContentEditable;
+}
+
+/**
+ * Ringing incoming call with Answer / Decline (Enter / Esc).
+ *
+ * On arrival the full card moves focus to Answer (screen readers then read the
+ * alert dialog) unless the user is typing somewhere or focus is outside the
+ * widget; the banner never steals focus. Whenever focus is not moved, the call
+ * is announced through the assertive live region instead.
+ */
 export function IncomingCallCard({ call, variant = 'full', className }: IncomingCallCardProps) {
   const api = useSoftphone();
   const ui = useSoftphoneUI();
@@ -32,12 +46,33 @@ export function IncomingCallCard({ call, variant = 'full', className }: Incoming
   const answerVideo = () => void api.answer(call.id, { video: true }).catch(() => undefined);
   const reject = () => void api.reject(call.id).catch(() => undefined);
   const ctx = ui.api ? ui.renderContext() : null;
+  const announce = useAnnounce();
+  const label = t('incoming.ariaLabel', { name: title });
+  const cardRef = useRef<HTMLElement | null>(null);
+  const setCard = (node: HTMLElement | null) => {
+    cardRef.current = node;
+  };
+  const primaryRef = useRef<HTMLButtonElement>(null);
+
+  // Mount only: one announcement / focus move per ringing call.
+  useEffect(() => {
+    const el = cardRef.current;
+    if (!el) return;
+    const doc = el.ownerDocument;
+    const inner = (el.getRootNode() as Document | ShadowRoot).activeElement;
+    const nothingFocused = !doc.activeElement || doc.activeElement === doc.body;
+    const inWidget = Boolean(inner && el.closest('.sipkit-phone')?.contains(inner));
+    const takeFocus = variant === 'full' && (nothingFocused || (inWidget && !isEditable(inner)));
+    if (takeFocus && primaryRef.current) primaryRef.current.focus({ preventScroll: true });
+    else announce(label, 'assertive');
+  }, []);
 
   if (variant === 'banner') {
     return (
       <div
+        ref={setCard}
         role="alertdialog"
-        aria-label={t('incoming.ariaLabel', { name: title })}
+        aria-label={label}
         data-testid="incoming-call"
         data-video={video ? 'true' : undefined}
         className={cn(
@@ -54,21 +89,35 @@ export function IncomingCallCard({ call, variant = 'full', className }: Incoming
           <div className="truncate text-sm font-semibold">{title}</div>
           {title !== number && <div className="truncate text-xs text-muted-foreground">{number}</div>}
         </div>
-        <Button size="icon" variant="call-end" className="rounded-full" aria-label={t('incoming.decline')} onClick={reject}>
-          <PhoneOffIcon />
+        <Button
+          size="icon-lg"
+          variant="call-end"
+          className="size-11 rounded-full"
+          aria-label={t('incoming.decline')}
+          aria-keyshortcuts="Escape"
+          onClick={reject}
+        >
+          <PhoneOffIcon aria-hidden />
         </Button>
         <Button
-          size="icon"
+          size="icon-lg"
           variant="call-accept"
-          className="rounded-full"
+          className="size-11 rounded-full"
           aria-label={video ? t('video.answerAudioOnly') : t('incoming.answer')}
+          aria-keyshortcuts="Enter"
           onClick={answer}
         >
-          <PhoneIcon />
+          <PhoneIcon aria-hidden />
         </Button>
         {video && (
-          <Button size="icon" variant="call-accept" className="rounded-full" aria-label={t('video.answerWithVideo')} onClick={answerVideo}>
-            <VideoIcon />
+          <Button
+            size="icon-lg"
+            variant="call-accept"
+            className="size-11 rounded-full"
+            aria-label={t('video.answerWithVideo')}
+            onClick={answerVideo}
+          >
+            <VideoIcon aria-hidden />
           </Button>
         )}
       </div>
@@ -77,8 +126,9 @@ export function IncomingCallCard({ call, variant = 'full', className }: Incoming
 
   return (
     <section
+      ref={setCard}
       role="alertdialog"
-      aria-label={t('incoming.ariaLabel', { name: title })}
+      aria-label={label}
       data-testid="incoming-call"
       data-video={video ? 'true' : undefined}
       className={cn(
@@ -104,11 +154,14 @@ export function IncomingCallCard({ call, variant = 'full', className }: Incoming
             variant="call-end"
             className="size-16 rounded-full shadow-md [&_svg:not([class*='size-'])]:size-7"
             aria-label={t('incoming.decline')}
+            aria-keyshortcuts="Escape"
             onClick={reject}
           >
-            <PhoneOffIcon />
+            <PhoneOffIcon aria-hidden />
           </Button>
-          <span className="text-xs text-muted-foreground">{t('incoming.declineHint')}</span>
+          <span aria-hidden className="text-xs text-muted-foreground">
+            {t('incoming.declineHint')}
+          </span>
         </div>
         <div className="flex flex-col items-center gap-2">
           <Button
@@ -118,12 +171,15 @@ export function IncomingCallCard({ call, variant = 'full', className }: Incoming
               !video && 'animate-ring-pulse [&_svg]:animate-wiggle',
             )}
             aria-label={video ? t('video.answerAudioOnly') : t('incoming.answer')}
-            autoFocus={!video}
+            aria-keyshortcuts="Enter"
+            ref={video ? undefined : primaryRef}
             onClick={answer}
           >
-            <PhoneIcon />
+            <PhoneIcon aria-hidden />
           </Button>
-          <span className="text-xs text-muted-foreground">{video ? t('video.answerAudioHint') : t('incoming.answerHint')}</span>
+          <span aria-hidden className="text-xs text-muted-foreground">
+            {video ? t('video.answerAudioHint') : t('incoming.answerHint')}
+          </span>
         </div>
         {video && (
           <div className="flex flex-col items-center gap-2">
@@ -131,12 +187,14 @@ export function IncomingCallCard({ call, variant = 'full', className }: Incoming
               variant="call-accept"
               className="size-16 rounded-full shadow-md animate-ring-pulse [&_svg]:animate-wiggle [&_svg:not([class*='size-'])]:size-7"
               aria-label={t('video.answerWithVideo')}
-              autoFocus
+              ref={primaryRef}
               onClick={answerVideo}
             >
-              <VideoIcon />
+              <VideoIcon aria-hidden />
             </Button>
-            <span className="text-xs text-muted-foreground">{t('video.answerVideoHint')}</span>
+            <span aria-hidden className="text-xs text-muted-foreground">
+              {t('video.answerVideoHint')}
+            </span>
           </div>
         )}
       </div>

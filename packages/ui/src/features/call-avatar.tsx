@@ -26,7 +26,7 @@ export function CallAvatar({
         className,
       )}
     >
-      {conference ? <UsersIcon /> : label === '#' ? <UserIcon /> : label}
+      {conference ? <UsersIcon aria-hidden /> : label === '#' ? <UserIcon aria-hidden /> : label}
     </div>
   );
 }

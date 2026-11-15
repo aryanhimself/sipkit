@@ -1,8 +1,9 @@
-import { useId, useState, type ReactNode } from 'react';
+import { useEffect, useId, useState, type ReactNode } from 'react';
 import { LogOutIcon } from 'lucide-react';
 import type { AudioDevice, AudioDeviceKind } from 'sipkit-core';
 import { useDevices, useRegistration, useSoftphone, useSoftphoneSnapshot } from 'sipkit-react';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { NativeSelect } from '@/components/ui/select';
@@ -11,6 +12,7 @@ import { Switch } from '@/components/ui/switch';
 import { useSoftphoneUI, type SoftphoneTheme } from '@/context';
 import { useI18n, useT } from '@/i18n/context';
 import { getLocaleDefinition, registeredLocales } from '@/i18n/locales';
+import { SHORT_EXTENSION_DIGITS, VALID_PREFIX, saveDialPrefs } from '@/lib/dial-prefs';
 import { isFeatureEnabled } from '@/lib/features';
 import { cn } from '@/lib/utils';
 import { PushSettings } from '@/features/push';
@@ -18,7 +20,7 @@ import { PushSettings } from '@/features/push';
 function Section({ title, children }: { title: string; children: ReactNode }) {
   return (
     <section className="grid gap-3">
-      <h3 className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">{title}</h3>
+      <h2 className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">{title}</h2>
       {children}
     </section>
   );
@@ -105,6 +107,86 @@ function ToggleRow({
       </div>
       <Switch id={id} checked={checked} onCheckedChange={onCheckedChange} />
     </div>
+  );
+}
+
+/** Dial prefix (e.g. 9 for an outside line), saved per account. */
+function DialingSection({ patch }: { patch: (p: { techPrefix?: string; techPrefixMinDigits?: number }) => void }) {
+  const api = useSoftphone();
+  useSoftphoneSnapshot(); // follow config changes
+  const t = useT();
+  const cfg = api.config;
+  const [draft, setDraft] = useState(cfg.techPrefix);
+  useEffect(() => setDraft(cfg.techPrefix), [cfg.techPrefix]);
+  const id = useId();
+  const descId = useId();
+  const errorId = useId();
+  const valid = VALID_PREFIX.test(draft);
+  const skipShort = cfg.techPrefixMinDigits > 0;
+
+  const commit = (next: { techPrefix?: string; techPrefixMinDigits?: number }) => {
+    const prefs = {
+      techPrefix: next.techPrefix ?? cfg.techPrefix,
+      techPrefixMinDigits: next.techPrefixMinDigits ?? cfg.techPrefixMinDigits,
+    };
+    saveDialPrefs(cfg.username, prefs);
+    patch(prefs);
+  };
+  const commitDraft = () => {
+    if (valid && draft !== cfg.techPrefix) commit({ techPrefix: draft });
+  };
+  const exampleFrom = '9842477272';
+
+  return (
+    <Section title={t('settings.dialing')}>
+      <div className="grid gap-1.5">
+        <Label htmlFor={id}>{t('settings.dialPrefix')}</Label>
+        <Input
+          id={id}
+          value={draft}
+          inputMode="tel"
+          dir="ltr"
+          autoComplete="off"
+          maxLength={8}
+          placeholder="9"
+          aria-invalid={!valid || undefined}
+          aria-describedby={`${descId}${valid ? '' : ` ${errorId}`}`}
+          onChange={(e) => setDraft(e.target.value.trim())}
+          onBlur={commitDraft}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') {
+              e.preventDefault();
+              commitDraft();
+            }
+          }}
+          className="w-32"
+        />
+        <p id={descId} className="text-xs text-muted-foreground">
+          {t('settings.dialPrefixDescription')}
+          {cfg.techPrefix && (
+            <>
+              {' '}
+              <span dir="ltr">
+                {t('settings.dialPrefixExample', { from: exampleFrom, to: cfg.techPrefix + exampleFrom })}
+              </span>
+            </>
+          )}
+        </p>
+        {!valid && (
+          <p id={errorId} role="alert" className="text-xs text-destructive">
+            {t('settings.dialPrefixInvalid')}
+          </p>
+        )}
+      </div>
+      {cfg.techPrefix && (
+        <ToggleRow
+          label={t('settings.dialPrefixSkipShort')}
+          description={t('settings.dialPrefixSkipShortDescription')}
+          checked={skipShort}
+          onCheckedChange={(v) => commit({ techPrefixMinDigits: v ? SHORT_EXTENSION_DIGITS : 0 })}
+        />
+      )}
+    </Section>
   );
 }
 
@@ -210,6 +292,8 @@ export function Settings({ className }: { className?: string }) {
           )}
           <PushSettings />
         </Section>
+        <Separator />
+        <DialingSection patch={patch} />
         <Separator />
         <Section title={t('settings.appearance')}>
           <div className="grid gap-1.5">

@@ -190,6 +190,28 @@ test.describe('softphone (mock engine)', () => {
     expect(states.every(([, inConf]) => !inConf)).toBe(true);
   });
 
+  test('mock badge; a failed call explains why; the event log wraps long lines', async ({ page }) => {
+    await login(page);
+    await expect(page.getByTestId('mock-badge')).toContainText('Not connected to any SIP server');
+
+    await page.getByLabel('Number to dial').fill('1002');
+    await page.getByRole('button', { name: 'Call', exact: true }).click();
+    await expect(page.getByTestId('call-screen')).toBeVisible();
+    await page.getByTestId('simulate-call-404').click();
+    const alert = page.getByTestId('call-failure');
+    await expect(alert).toHaveAttribute('role', 'alert');
+    await expect(alert).toContainText('Number not reachable (404)');
+    await expect(page.getByTestId('event-log')).toContainText('(failed) SIP 404');
+
+    // No horizontal clipping: the log never scrolls sideways.
+    const log = page.getByTestId('event-log');
+    const overflow = await log.evaluate((el) => el.scrollWidth - el.clientWidth);
+    expect(overflow).toBeLessThanOrEqual(0);
+
+    await page.getByRole('button', { name: 'Dismiss' }).click();
+    await expect(alert).toBeHidden();
+  });
+
   test('full-width layout', async ({ page }) => {
     await page.goto('/');
     await page.getByRole('radio', { name: 'Full width' }).click();

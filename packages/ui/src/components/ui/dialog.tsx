@@ -25,21 +25,45 @@ export function DialogOverlay({ className, ...props }: React.ComponentProps<type
   return <DialogPrimitive.Overlay data-slot="dialog-overlay" className={cn(overlayClass, className)} {...props} />;
 }
 
+/** The focused element, looking inside shadow roots (the widget may live in one). */
+function deepActiveElement(): HTMLElement | null {
+  let el: Element | null = typeof document === 'undefined' ? null : document.activeElement;
+  while (el?.shadowRoot?.activeElement) el = el.shadowRoot.activeElement;
+  return el instanceof HTMLElement && el !== el.ownerDocument.body ? el : null;
+}
+
+/**
+ * Remembers what had focus while the dialog mounts. Runs during render, before
+ * an `autoFocus` field inside the dialog takes focus in the commit.
+ */
+function RememberFocus({ target }: { target: React.MutableRefObject<HTMLElement | null> }) {
+  if (!target.current) target.current = deepActiveElement();
+  return null;
+}
+
 /**
  * Dialogs are positioned inside the softphone root (absolute), not the
  * viewport, so they work in the compact widget and in Shadow DOM.
+ *
+ * Focus moves into the dialog when it opens (Radix) and goes back to whatever
+ * had focus before when it closes, also for dialogs opened from code (no
+ * DialogTrigger), where Radix alone would drop focus on the page body.
  */
 export function DialogContent({
   className,
   children,
   showCloseButton = true,
+  onOpenAutoFocus,
+  onCloseAutoFocus,
   ...props
 }: React.ComponentProps<typeof DialogPrimitive.Content> & { showCloseButton?: boolean }) {
   const container = usePortalContainer();
   const modal = useModalDefault();
   const t = useT();
+  const returnFocus = React.useRef<HTMLElement | null>(null);
   return (
     <DialogPrimitive.Portal container={container}>
+      <RememberFocus target={returnFocus} />
       {/* Radix only renders Overlay for modal dialogs; draw our own otherwise. */}
       {modal ? <DialogOverlay /> : <div data-slot="dialog-overlay" data-state="open" className={overlayClass} />}
       <DialogPrimitive.Content
@@ -49,6 +73,16 @@ export function DialogContent({
           'data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:zoom-in-95 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95',
           className,
         )}
+        onOpenAutoFocus={onOpenAutoFocus}
+        onCloseAutoFocus={(e) => {
+          onCloseAutoFocus?.(e);
+          const el = returnFocus.current;
+          returnFocus.current = null;
+          if (!e.defaultPrevented && el?.isConnected) {
+            e.preventDefault();
+            el.focus({ preventScroll: true });
+          }
+        }}
         {...props}
       >
         {children}
@@ -57,7 +91,7 @@ export function DialogContent({
             data-slot="dialog-close"
             className="absolute top-3.5 end-3.5 rounded-sm opacity-70 transition-opacity hover:opacity-100 focus-visible:ring-[3px] focus-visible:ring-ring focus-visible:outline-none [&_svg]:size-4"
           >
-            <XIcon />
+            <XIcon aria-hidden />
             <span className="sr-only">{t('common.close')}</span>
           </DialogPrimitive.Close>
         )}

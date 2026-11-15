@@ -1467,6 +1467,16 @@ export class MockSoftphone implements SoftphoneApi {
     this.endCall(call.id, call.state === 'connected' || call.state === 'held' ? 'remote-hangup' : 'cancelled');
   }
 
+  /**
+   * Simulate a call failing (default: active call), e.g. `simulateCallFailure('failed', 404)`
+   * for an unreachable number or `simulateCallFailure('media-error')` for a blocked microphone.
+   */
+  simulateCallFailure(reason: DisconnectReason = 'failed', code?: number, callId?: CallId): void {
+    const call = this.findCall(callId);
+    if (!call) return;
+    this.endCall(call.id, reason, code);
+  }
+
   /** Simulate the remote party answering an outgoing call immediately. */
   simulateRemoteAnswer(callId?: CallId): void {
     const call = this.findCall(callId);

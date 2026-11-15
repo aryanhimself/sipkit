@@ -24,7 +24,7 @@ export function SelectTrigger({ className, children, ...props }: React.Component
     >
       {children}
       <SelectPrimitive.Icon asChild>
-        <ChevronDownIcon className="size-4 opacity-50" />
+        <ChevronDownIcon className="size-4 opacity-50" aria-hidden />
       </SelectPrimitive.Icon>
     </SelectPrimitive.Trigger>
   );
@@ -68,7 +68,7 @@ export function SelectItem({ className, children, ...props }: React.ComponentPro
     >
       <span className="absolute end-2 flex size-3.5 items-center justify-center">
         <SelectPrimitive.ItemIndicator>
-          <CheckIcon className="size-4" />
+          <CheckIcon className="size-4" aria-hidden />
         </SelectPrimitive.ItemIndicator>
       </span>
       <SelectPrimitive.ItemText>{children}</SelectPrimitive.ItemText>
@@ -93,7 +93,7 @@ export function NativeSelect({ className, children, ...props }: React.ComponentP
       >
         {children}
       </select>
-      <ChevronDownIcon className="pointer-events-none absolute top-1/2 end-2.5 size-4 -translate-y-1/2 opacity-50" />
+      <ChevronDownIcon className="pointer-events-none absolute top-1/2 end-2.5 size-4 -translate-y-1/2 opacity-50" aria-hidden />
     </div>
   );
 }

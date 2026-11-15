@@ -37,7 +37,7 @@ export function DndToggle({ className }: { className?: string }) {
           )}
           onClick={() => void toggle()}
         >
-          {dnd ? <BellOffIcon /> : <BellIcon />}
+          {dnd ? <BellOffIcon aria-hidden /> : <BellIcon aria-hidden />}
         </Button>
       </TooltipTrigger>
       <TooltipContent>

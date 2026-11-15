@@ -95,11 +95,11 @@ function ConversationList({
           data-testid="chat-new-target"
         />
         <Button type="submit" size="icon" variant="outline" aria-label={t('chat.start')} disabled={!target.trim()}>
-          <MessageSquarePlusIcon />
+          <MessageSquarePlusIcon aria-hidden />
         </Button>
       </form>
       {conversations.length === 0 ? (
-        <EmptyState icon={<MessagesSquareIcon />} title={t('chat.emptyTitle')} description={t('chat.emptyDescription')} />
+        <EmptyState icon={<MessagesSquareIcon aria-hidden />} title={t('chat.emptyTitle')} description={t('chat.emptyDescription')} />
       ) : (
         <ScrollArea className="min-h-0 flex-1">
           <ul className="px-2 pb-2" aria-label={t('chat.listLabel')}>
@@ -222,11 +222,11 @@ function ChatThread({
     <div className={cn('flex min-h-0 flex-1 flex-col', className)} data-testid="chat-thread" data-peer={conv.peer}>
       <div className="flex items-center gap-1 border-b px-2 py-1.5">
         <Button size="icon-sm" variant="ghost" aria-label={t('chat.back')} onClick={onBack}>
-          <ArrowLeftIcon className="rtl:rotate-180" />
+          <ArrowLeftIcon className="rtl:rotate-180" aria-hidden />
         </Button>
-        <h3 className="min-w-0 flex-1 truncate text-sm font-semibold" data-testid="chat-thread-title">
+        <h2 className="min-w-0 flex-1 truncate text-sm font-semibold" data-testid="chat-thread-title">
           {name}
-        </h3>
+        </h2>
         <Button
           size="icon-sm"
           variant="ghost"
@@ -235,7 +235,7 @@ function ChatThread({
           disabled={!reg.isRegistered || conv.peer.startsWith('sip:')}
           onClick={() => dial(conv.peer)}
         >
-          <PhoneIcon />
+          <PhoneIcon aria-hidden />
         </Button>
         {conv.conversation && (
           <Button
@@ -248,7 +248,7 @@ function ChatThread({
               onBack();
             }}
           >
-            <Trash2Icon />
+            <Trash2Icon aria-hidden />
           </Button>
         )}
       </div>
@@ -288,10 +288,10 @@ function ChatThread({
                       <Button
                         size="sm"
                         variant="ghost"
-                        className="h-5 px-1 text-[11px]"
+                        className="h-6 px-1.5 text-[11px]"
                         onClick={() => send(m.body)}
                       >
-                        <RotateCwIcon className="size-3" /> {t('chat.retry')}
+                        <RotateCwIcon className="size-3" aria-hidden /> {t('chat.retry')}
                       </Button>
                     )}
                   </span>
@@ -322,7 +322,7 @@ function ChatThread({
           className="max-h-32 min-h-9 flex-1 resize-none rounded-md border border-input bg-background px-3 py-2 text-sm shadow-xs outline-none placeholder:text-muted-foreground focus-visible:border-primary focus-visible:ring-[3px] focus-visible:ring-ring/60 disabled:cursor-not-allowed disabled:opacity-50"
         />
         <Button type="submit" size="icon" aria-label={t('chat.send')} disabled={!reg.isRegistered || !draft.trim()}>
-          <SendHorizontalIcon className="rtl:rotate-180" />
+          <SendHorizontalIcon className="rtl:rotate-180" aria-hidden />
         </Button>
       </form>
     </div>

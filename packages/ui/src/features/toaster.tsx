@@ -15,5 +15,17 @@ export function SoftphoneToaster({ theme, dir }: { theme?: 'light' | 'dark'; dir
     else if (n.level === 'warning') toast.warning(title, opts);
     else toast.info(title, opts);
   });
-  return <Toaster theme={theme} dir={dir ?? i18n.dir} position="top-center" richColors closeButton duration={4000} />;
+  // Sonner's region is a polite live region: toasts are read once, without moving focus.
+  return (
+    <Toaster
+      theme={theme}
+      dir={dir ?? i18n.dir}
+      position="bottom-center"
+      offset={88}
+      richColors
+      closeButton
+      duration={6000}
+      containerAriaLabel={i18n.t('toast.region')}
+    />
+  );
 }

@@ -94,6 +94,22 @@
   }
 }
 
+/*
+ * Reduced motion (WCAG 2.3.3): no ringing pulse, wiggle, blinking dots, spinners
+ * or enter/exit animations when the user asks the OS for less motion. State is
+ * always shown by text as well, so nothing is lost.
+ */
+@media (prefers-reduced-motion: reduce) {
+  .sipkit-phone *,
+  .sipkit-phone *::before,
+  .sipkit-phone *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
 /* ---------------------------------------------------------------- tokens */
 
 /* <sipkit-tokens> generated from src/theme/tokens.ts by `pnpm gen:tokens`; do not edit */

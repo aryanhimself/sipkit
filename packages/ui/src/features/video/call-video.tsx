@@ -118,7 +118,7 @@ export function useCameraToggle(call: Call) {
     label: t('video.camera'),
     pressed: video.cameraOn,
     disabled: !connected || call.inConference,
-    icon: video.cameraOn ? <VideoIcon /> : <VideoOffIcon />,
+    icon: video.cameraOn ? <VideoIcon aria-hidden /> : <VideoOffIcon aria-hidden />,
     toggle: () => video.toggleCamera(),
   };
 }

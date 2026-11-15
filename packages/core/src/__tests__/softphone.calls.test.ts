@@ -62,6 +62,16 @@ describe('outgoing calls', () => {
     expect(engine.lastCommand('call')?.args[1]).toBe('sip:alice@example.com');
   });
 
+  it('skips techPrefix for short extensions when techPrefixMinDigits is set', async () => {
+    const { softphone, engine } = await createTestSoftphone({ config: { techPrefix: '9', techPrefixMinDigits: 7 } });
+    await softphone.call('1002');
+    expect(engine.lastCommand('call')?.args[1]).toBe('1002');
+    await softphone.hangup();
+    const call = await softphone.call('9842477272');
+    expect(engine.lastCommand('call')?.args[1]).toBe('99842477272');
+    expect(call.remoteNumber).toBe('9842477272');
+  });
+
   it('respects normalizeNumbers=false', async () => {
     const { softphone, engine } = await createTestSoftphone({ config: { normalizeNumbers: false } });
     await softphone.call('12-34');
@@ -101,6 +111,17 @@ describe('outgoing calls', () => {
     await expect(softphone.call('1002')).rejects.toMatchObject({ code: 'ENGINE_ERROR' });
     expect(softphone.getSnapshot().calls).toHaveLength(0);
     expect(cdr).toHaveBeenCalledWith(expect.objectContaining({ reason: 'failed' }));
+  });
+
+  it('ends with media-error, not failed, when the microphone is blocked', async () => {
+    const { softphone, engine } = await createTestSoftphone();
+    const cdr = vi.fn();
+    softphone.on('cdr', cdr);
+    const denied = new Error('Permission denied');
+    denied.name = 'NotAllowedError';
+    engine.failNext('call', denied);
+    await expect(softphone.call('1002')).rejects.toMatchObject({ code: 'ENGINE_ERROR' });
+    expect(cdr).toHaveBeenCalledWith(expect.objectContaining({ reason: 'media-error' }));
   });
 
   it('cancels an unanswered outgoing call after ringTimeout', async () => {

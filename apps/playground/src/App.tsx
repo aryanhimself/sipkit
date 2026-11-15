@@ -275,7 +275,7 @@ export function App() {
       }),
       p.on('cdr', (c) =>
         add(
-          `cdr ${c.direction} ${c.called} ${Math.round(c.durationMs / 1000)}s (${c.reason})${
+          `cdr ${c.direction} ${c.called} ${Math.round(c.durationMs / 1000)}s (${c.reason})${c.code ? ` SIP ${c.code}` : ''}${
             c.quality ? ` quality ${c.quality.worstLevel} minMOS ${c.quality.minMos}` : ''
           }`,
         ),
@@ -463,10 +463,27 @@ export function App() {
             : 'mx-auto grid max-w-7xl gap-6 p-5 lg:grid-cols-[420px_1fr]'
         }
       >
-        <div className={layout === 'full' ? 'h-[720px]' : ''}>
+        <div className={layout === 'full' ? 'flex h-[720px] flex-col gap-2' : 'flex flex-col gap-2'}>
+          {mode === 'mock' && (
+            // The widget header shows "user@domain · Online" in mock mode too: say plainly that nothing is real.
+            <p
+              role="note"
+              data-testid="mock-badge"
+              className="flex items-center gap-2 rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-xs text-amber-950"
+            >
+              <span className="rounded bg-amber-500 px-1.5 py-0.5 text-[10px] font-bold tracking-wide text-white uppercase">
+                Mock
+              </span>
+              <span>
+                Simulated phone: calls, sign-in and audio are fake. Not connected to any SIP server. Pick{' '}
+                <b>Real Asterisk</b> to use a real one.
+              </span>
+            </p>
+          )}
           {phone ? (
             <Softphone
               key={mode}
+              className={layout === 'full' ? 'min-h-0 flex-1' : undefined}
               softphone={phone}
               layout={layout}
               theme={theme}
@@ -510,6 +527,12 @@ export function App() {
                 </Btn>
                 <Btn onClick={() => simulate(phone, 'simulateRemoteHangup')} data-testid="simulate-remote-hangup">
                   Remote hangup
+                </Btn>
+                <Btn onClick={() => mock?.simulateCallFailure('failed', 404)} data-testid="simulate-call-404">
+                  Fail call (404)
+                </Btn>
+                <Btn onClick={() => mock?.simulateCallFailure('media-error')} data-testid="simulate-mic-blocked">
+                  Fail call (mic blocked)
                 </Btn>
                 <Btn
                   onClick={() => {
@@ -595,10 +618,16 @@ export function App() {
             )
           )}
           <Panel title="Events">
-            <ol className="max-h-80 overflow-auto font-mono text-[11px] leading-5 text-slate-600" data-testid="event-log">
-              {log.length === 0 && <li className="text-slate-400">No events yet</li>}
+            {/* Long lines wrap (SIP codes at the end stay visible); no horizontal scrolling. */}
+            <ol
+              className="max-h-80 overflow-x-hidden overflow-y-auto font-mono text-[11px] leading-5 text-slate-600"
+              data-testid="event-log"
+            >
+              {log.length === 0 && <li className="text-slate-500">No events yet</li>}
               {log.map((l, i) => (
-                <li key={i}>{l}</li>
+                <li key={i} className="border-b border-slate-100 py-0.5 break-words whitespace-pre-wrap last:border-0 [overflow-wrap:anywhere]">
+                  {l}
+                </li>
               ))}
             </ol>
           </Panel>
@@ -619,6 +648,7 @@ function RealConfigForm({
   const [user, setUser] = useState(() => localStorage.getItem('pg:user') ?? '1001');
   const [pass, setPass] = useState('');
   const [domain, setDomain] = useState(() => localStorage.getItem('pg:domain') ?? '');
+  const [prefix, setPrefix] = useState(() => localStorage.getItem('pg:prefix') ?? '');
   const [dndMode, setDndMode] = useState<DndMode>('local');
   const [conferenceMode, setConferenceMode] = useState<ConferenceMode>('local');
   const [watch, setWatch] = useState(() => localStorage.getItem('pg:watch') ?? '');
@@ -632,6 +662,7 @@ function RealConfigForm({
     localStorage.setItem('pg:ws', ws);
     localStorage.setItem('pg:user', user);
     localStorage.setItem('pg:domain', domain);
+    localStorage.setItem('pg:prefix', prefix);
     localStorage.setItem('pg:watch', watch);
     localStorage.setItem('pg:vmApi', vmApi);
     const watched = watch.split(/[\s,]+/).filter(Boolean);
@@ -640,6 +671,8 @@ function RealConfigForm({
       username: user,
       password: pass,
       domain,
+      // Outside-line prefix, skipped for short internal extensions (also editable in Settings → Dialing).
+      ...(prefix ? { techPrefix: prefix, techPrefixMinDigits: 7 } : {}),
       brandName: 'SipKit',
       // Dev PBX: *97 = VoiceMailMain, MWI via SUBSCRIBE (infra/asterisk/README.md).
       // Voicemail list (V2-VM-02): services/voicemail-api, e.g. http://localhost:8090 (docs/voicemail.md).
@@ -685,6 +718,16 @@ function RealConfigForm({
       <label className="mb-3 block text-xs font-medium">
         Domain (optional)
         <input className={field} value={domain} placeholder="derived from URL" onChange={(e) => setDomain(e.target.value)} />
+      </label>
+      <label className="mb-3 block text-xs font-medium">
+        Dial prefix (optional)
+        <input
+          className={field}
+          value={prefix}
+          inputMode="tel"
+          placeholder="e.g. 9 for an outside line"
+          onChange={(e) => setPrefix(e.target.value.replace(/[^0-9*#+]/g, '').slice(0, 8))}
+        />
       </label>
       <div className="mb-4 grid grid-cols-2 gap-3">
         <label className="block text-xs font-medium">

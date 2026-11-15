@@ -31,11 +31,26 @@ export interface I18n {
   error: (error: unknown) => string;
   /** Short text for a call end reason. */
   endReason: (reason: DisconnectReason) => string;
+  /**
+   * Human-readable reason a call did not go through ("Number not reachable (404)",
+   * "Microphone blocked — …", "Busy (486)"). Null for normal endings (hang up,
+   * cancel, transfer). Pass `code` only for calls you placed: on incoming calls the
+   * code is usually your own reject response.
+   */
+  callFailure: (reason: DisconnectReason, code?: number) => string | null;
   /** "Wrong username or password (403)" for known SIP codes, else the server's reason. */
   registrationFailure: (reason?: string, code?: number) => string;
   /** Title/message of a core `notification`, translated by its `code` when known. */
   notification: (n: SoftphoneNotification) => { title: string; message?: string };
 }
+
+const CALL_FAILURE_KEYS: Partial<Record<DisconnectReason, MessageKey>> = {
+  'media-error': 'callFailure.media-error',
+  busy: 'callFailure.busy',
+  rejected: 'callFailure.rejected',
+  'no-answer': 'callFailure.no-answer',
+  failed: 'callFailure.failed',
+};
 
 const END_REASON_KEYS: Record<DisconnectReason, MessageKey> = {
   'local-hangup': 'endReason.local-hangup',
@@ -76,6 +91,15 @@ export function createI18n(locale?: string | readonly string[] | null, overrides
     if (code && has(sipKey)) return `${t(sipKey)} (${code})`;
     return `${reason || t('registration.failedReason')}${code ? ` (${code})` : ''}`;
   };
+  const callFailure = (reason: DisconnectReason, code?: number): string | null => {
+    const key = CALL_FAILURE_KEYS[reason];
+    if (!key) return null;
+    // A blocked microphone is the actionable part, whatever the server answered.
+    if (reason === 'media-error') return t(key);
+    const sipKey = `callSip.${code}`;
+    if (code && has(sipKey)) return `${t(sipKey)} (${code})`;
+    return code ? `${t(key)} (${code})` : t(key);
+  };
 
   const i18n: I18n = {
     locale: resolved.tag,
@@ -94,6 +118,7 @@ export function createI18n(locale?: string | readonly string[] | null, overrides
     when: (epochMs, now) => formatWhen(epochMs, now, intlLocale),
     endReason: (reason) => t(END_REASON_KEYS[reason] ?? 'history.notConnected'),
     registrationFailure,
+    callFailure,
     notification: (n) => {
       if (!n.code) return { title: n.title, message: n.message };
       const params = n.params ?? {};

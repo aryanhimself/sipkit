@@ -1,4 +1,4 @@
-import { useRef, useSyncExternalStore } from 'react';
+import { useId, useRef, useSyncExternalStore } from 'react';
 import { shallowEqual } from 'sipkit-react';
 import {
   HistoryIcon,
@@ -69,6 +69,7 @@ export function CallHistory({ className, onCall }: CallHistoryProps) {
   const lookup = useContactLookup();
   const i18n = useI18n();
   const { t } = i18n;
+  const rowId = useId();
 
   const dial = (n: string) => (onCall ? onCall(n) : void api.call(n).catch(() => undefined));
 
@@ -76,7 +77,7 @@ export function CallHistory({ className, onCall }: CallHistoryProps) {
     return (
       <EmptyState
         className={className}
-        icon={<HistoryIcon />}
+        icon={<HistoryIcon aria-hidden />}
         title={t('history.emptyTitle')}
         description={t('history.emptyDescription')}
       />
@@ -86,17 +87,18 @@ export function CallHistory({ className, onCall }: CallHistoryProps) {
   return (
     <div className={cn('flex min-h-0 flex-1 flex-col', className)}>
       <div className="flex items-center justify-between px-4 pt-3 pb-1">
-        <h3 className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">{t('history.recent')}</h3>
+        <h2 className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">{t('history.recent')}</h2>
         {clear && (
           <Button variant="ghost" size="sm" className="h-7 text-muted-foreground" onClick={clear}>
-            <Trash2Icon /> {t('history.clear')}
+            <Trash2Icon aria-hidden /> {t('history.clear')}
           </Button>
         )}
       </div>
       <ScrollArea className="min-h-0 flex-1">
         <ul className="px-2 pb-2" aria-label={t('history.listLabel')}>
-          {items.map((c) => {
+          {items.map((c, index) => {
             const number = c.direction === 'outgoing' ? c.called : c.caller;
+            const detailId = `${rowId}-${index}`;
             const missed = isMissed(c);
             const name = c.remoteDisplayName || lookup(number)?.name;
             const Icon = missed ? PhoneMissedIcon : c.direction === 'incoming' ? PhoneIncomingIcon : PhoneOutgoingIcon;
@@ -107,9 +109,13 @@ export function CallHistory({ className, onCall }: CallHistoryProps) {
                   disabled={!reg.isRegistered}
                   onClick={() => dial(number)}
                   aria-label={t('history.callBack', { name: name ?? number })}
+                  aria-describedby={detailId}
+                  data-testid="history-row"
+                  data-reason={c.reason}
                   className="group flex w-full items-center gap-3 rounded-lg px-2 py-2 text-start outline-none hover:bg-muted/70 focus-visible:ring-[3px] focus-visible:ring-ring disabled:cursor-default disabled:opacity-100"
                 >
                   <span
+                    aria-hidden
                     className={cn(
                       'grid size-9 shrink-0 place-items-center rounded-full [&_svg]:size-4',
                       missed ? 'bg-destructive/10 text-destructive' : 'bg-muted text-muted-foreground',
@@ -117,19 +123,26 @@ export function CallHistory({ className, onCall }: CallHistoryProps) {
                   >
                     <Icon aria-hidden />
                   </span>
-                  <span className="min-w-0 flex-1">
+                  <span className="min-w-0 flex-1" id={detailId}>
                     <span className={cn('block truncate text-sm font-medium', missed && 'text-destructive')}>
                       {name ?? formatNumber(number)}
                     </span>
-                    <span className="block truncate text-xs text-muted-foreground">
+                    <span className="block truncate text-xs text-muted-foreground" data-testid="history-detail">
                       {name ? `${formatNumber(number)} · ` : ''}
                       {missed ? t('history.missed') : c.durationMs > 0 ? i18n.duration(c.durationMs) : reasonLabel(c, i18n)}
                     </span>
+                    <span className="sr-only">{` · ${i18n.when(c.endedAt)}`}</span>
                   </span>
-                  <span className="shrink-0 text-xs text-muted-foreground tabular-nums group-hover:hidden">
+                  <span
+                    aria-hidden
+                    className="shrink-0 text-xs text-muted-foreground tabular-nums group-hover:hidden group-focus-visible:hidden"
+                  >
                     {i18n.when(c.endedAt)}
                   </span>
-                  <PhoneIcon className="hidden size-4 shrink-0 text-success group-hover:block" aria-hidden />
+                  <PhoneIcon
+                    className="hidden size-4 shrink-0 text-success group-hover:block group-focus-visible:block"
+                    aria-hidden
+                  />
                 </button>
               </li>
             );
@@ -140,7 +153,12 @@ export function CallHistory({ className, onCall }: CallHistoryProps) {
   );
 }
 
+/** Why a call that never connected ended; outgoing failures include the SIP code ("Busy (486)"). */
 function reasonLabel(c: Cdr, i18n: I18n): string {
+  if (c.direction === 'outgoing' && c.reason !== 'media-error') {
+    const failure = i18n.callFailure(c.reason, c.code);
+    if (failure) return failure;
+  }
   switch (c.reason) {
     case 'busy':
     case 'dnd':
