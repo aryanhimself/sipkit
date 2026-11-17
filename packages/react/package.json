@@ -1,6 +1,6 @@
 {
   "name": "sipkit-react",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "React provider and hooks for sipkit-core, the embeddable SIP/WebRTC softphone",
   "keywords": [
     "sip",

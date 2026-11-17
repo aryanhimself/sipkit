@@ -1,5 +1,15 @@
 # sipkit-ui
 
+## 0.2.1
+
+### Patch Changes
+
+- be23289: Call warnings no longer take over the screen: a failed call shows one compact amber line (number, reason, Call again, dismiss) that hides itself after 8 seconds, and "no audio" is a one-line hint on the call screen instead of a toast over the call controls.
+- d479d8b: Detect calls that carry no audio. Quality samples with no RTP packets now report `noAudio`, `mos: 1` and level `poor` (they previously looked "good, MOS 4.4"), the softphone warns once per call with notification `callNoAudio`, and the UI quality indicator shows "No audio".
+- Updated dependencies [d479d8b]
+  - sipkit-core@0.2.1
+  - sipkit-react@0.2.1
+
 ## 0.2.0
 
 ### Minor Changes
