@@ -193,6 +193,11 @@ export function CallScreen({ call, className }: CallScreenProps) {
           {callStatusText(call, i18n.duration(timer.elapsedMs), conferenceSize, t)}
         </p>
         <CallQualityIndicator call={call} />
+        {call.state === 'connected' && call.quality?.noAudio && (
+          <p role="status" data-testid="call-no-audio" className="max-w-[18rem] text-center text-xs text-warning-foreground dark:text-warning">
+            {t('quality.noAudioHint')}
+          </p>
+        )}
         {ui.slots.callInfo && ctx && <div className="w-full">{ui.slots.callInfo(call, ctx)}</div>}
       </div>
 

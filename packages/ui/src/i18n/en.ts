@@ -227,6 +227,7 @@ export const en = {
   'quality.fair': 'Fair',
   'quality.poor': 'Poor',
   'quality.noAudio': 'No audio',
+  'quality.noAudioHint': 'The network may be blocking call audio. Try another network.',
   'quality.ariaLabel': 'Call quality: {level}',
   'quality.mos': 'MOS',
   'quality.loss': 'Loss in / out',

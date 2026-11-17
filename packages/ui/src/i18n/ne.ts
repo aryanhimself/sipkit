@@ -213,6 +213,7 @@ export const ne: Messages = {
   'quality.fair': 'ठिकै',
   'quality.poor': 'कमजोर',
   'quality.noAudio': 'आवाज छैन',
+  'quality.noAudioHint': 'नेटवर्कले कलको आवाज रोकिरहेको हुन सक्छ। अर्को नेटवर्क प्रयोग गर्नुहोस्।',
   'quality.ariaLabel': 'कलको गुणस्तर: {level}',
   'quality.mos': 'MOS',
   'quality.loss': 'प्याकेट लस आउने / जाने',

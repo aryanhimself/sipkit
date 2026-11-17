@@ -9,6 +9,8 @@ export function SoftphoneToaster({ theme, dir }: { theme?: 'light' | 'dark'; dir
   const i18n = useI18n();
   useSoftphoneEvent('notification', (n) => {
     if (!api.config.showToasts) return;
+    // Shown inline on the call screen instead, so it never covers the call controls.
+    if (n.code === 'callNoAudio') return;
     const { title, message } = i18n.notification(n);
     const opts = message ? { description: message } : undefined;
     if (n.level === 'error') toast.error(title, opts);

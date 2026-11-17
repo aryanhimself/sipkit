@@ -1,6 +1,6 @@
 import { act, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { createI18n } from '@/i18n/context';
 import { Softphone } from '@/softphone';
 import { createPhone } from '@/test/utils';
@@ -64,6 +64,40 @@ describe('call failure messages', () => {
     await screen.findByTestId('call-failure');
     await user.click(screen.getByRole('button', { name: 'Dismiss' }));
     expect(screen.queryByTestId('call-failure')).toBeNull();
+  });
+
+  it('shows the failure as one compact line that hides itself', async () => {
+    const { phone } = await renderRegistered();
+    await act(async () => {
+      await phone.call('9841429506');
+    });
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    try {
+      act(() => phone.simulateCallFailure('failed', 480));
+      const alert = await screen.findByTestId('call-failure');
+      expect(alert.textContent).toContain('Not available right now (480)');
+      // Screen readers still get the full sentence.
+      expect(alert.textContent).toContain("didn't go through");
+      act(() => vi.advanceTimersByTime(7_000));
+      expect(screen.queryByTestId('call-failure')).not.toBeNull();
+      act(() => vi.advanceTimersByTime(1_500));
+      expect(screen.queryByTestId('call-failure')).toBeNull();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('shows a one-line no-audio hint on the call screen instead of a toast', async () => {
+    const phone = createPhone({ callQualityInterval: 0.1 }, { network: { lossPct: 100, rttMs: 40, jitterMs: 2 } });
+    render(<Softphone softphone={phone} toaster={false} />);
+    await waitFor(() => expect(screen.getByTestId('registration-pill').dataset.state).toBe('registered'));
+    await act(async () => {
+      await phone.call('1002');
+    });
+    const hint = await screen.findByTestId('call-no-audio', {}, { timeout: 3000 });
+    expect(hint.textContent).toBe('The network may be blocking call audio. Try another network.');
+    expect(hint.getAttribute('role')).toBe('status');
+    expect(screen.getByTestId('call-quality').textContent).toBe('No audio');
   });
 
   it('tells the user when the microphone is blocked', async () => {
