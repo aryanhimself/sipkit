@@ -214,7 +214,15 @@ export class QualityTracker {
 
     const rtt = isNum(stats.remoteInbound?.rttMs) ? stats.remoteInbound.rttMs : stats.rttMs;
     const codec = stats.inbound?.codec ?? stats.outbound?.codec;
-    const mos = round(
+    // Dead media: no packets at all in this interval. Loss-based MOS can't see this
+    // (0 lost of 0 received looks perfect), so report it explicitly.
+    // The first sample covers the time since connect (one sampling interval), so it counts too.
+    // With no audio stats at all we can't tell, so only judge once a stream exists.
+    const measured = (!prev || dt > 0) && Boolean(stats.inbound || stats.outbound);
+    const noReceive = measured && counterDelta(stats.inbound?.packetsReceived ?? 0, prev?.inbound?.packetsReceived) === 0;
+    const noSend = measured && counterDelta(stats.outbound?.packetsSent ?? 0, prev?.outbound?.packetsSent) === 0;
+    const noAudio = noReceive && noSend ? 'both' : noReceive ? 'receive' : noSend ? 'send' : undefined;
+    const mos = noAudio ? 1 : round(
       estimateMos({
         rttMs: rtt,
         jitterMs: maxDefined(inbound.jitterMs, outbound.jitterMs),
@@ -225,7 +233,9 @@ export class QualityTracker {
 
     const quality: CallQuality = {
       at: stats.timestamp,
-      level: this.filter.push(mos),
+      // Dead media is reported as poor right away but kept out of the smoothing filter,
+      // so the indicator recovers as soon as audio starts.
+      level: noAudio ? 'poor' : this.filter.push(mos),
       mos,
       inbound,
       outbound,
@@ -237,6 +247,7 @@ export class QualityTracker {
     };
     if (isNum(rtt)) quality.rttMs = round(rtt, 1);
     if (codec) quality.codec = codec;
+    if (noAudio) quality.noAudio = noAudio;
     const video = videoQuality(stats, prev, dt);
     if (video) quality.video = video;
     return quality;

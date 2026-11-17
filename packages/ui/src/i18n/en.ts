@@ -226,6 +226,7 @@ export const en = {
   'quality.good': 'Good',
   'quality.fair': 'Fair',
   'quality.poor': 'Poor',
+  'quality.noAudio': 'No audio',
   'quality.ariaLabel': 'Call quality: {level}',
   'quality.mos': 'MOS',
   'quality.loss': 'Loss in / out',
@@ -431,6 +432,8 @@ export const en = {
   'call.resumingHint': 'The caller is on hold until the call is back.',
   'notification.callResumeFailed.title': 'Call ended',
   'notification.callResumeFailed.message': 'The call with {name} could not be reconnected',
+  'notification.callNoAudio.title': 'No audio on this call',
+  'notification.callNoAudio.message': 'No sound is getting through. The network may be blocking calls (UDP). Try another Wi-Fi or mobile data, or ask your administrator to set up a TURN server.',
 } as const satisfies Record<string, string>;
 
 export type MessageKey = keyof typeof en;

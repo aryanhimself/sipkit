@@ -1,7 +1,7 @@
 import type { ResolvedConfig } from '../config';
 import type { CallRegistry } from '../internal/call-registry';
 import type { TimerRegistry } from '../internal/timers';
-import type { Call, CallId, Cdr, Logger, SoftphoneEngine, SoftphoneEvents } from '../types';
+import type { Call, CallId, Cdr, Logger, SoftphoneEngine, SoftphoneEvents, SoftphoneNotification } from '../types';
 import { QualitySummaryBuilder, QualityTracker } from './quality';
 
 export interface QualityMonitorDeps {
@@ -11,6 +11,8 @@ export interface QualityMonitorDeps {
   logger: Logger;
   config: () => ResolvedConfig;
   emit: (payload: SoftphoneEvents['call:quality']) => void;
+  /** User-facing warning (toast), e.g. when a connected call carries no audio. */
+  notify?: (notification: SoftphoneNotification) => void;
 }
 
 interface Session {
@@ -19,6 +21,8 @@ interface Session {
   active: boolean;
   /** Bumped on every (de)activation so in-flight samples from an older phase are dropped. */
   gen: number;
+  /** The "no audio" warning was shown for this call. */
+  warnedNoAudio?: boolean;
 }
 
 /** Sampling runs only while media should flow both ways. */
@@ -115,6 +119,18 @@ export class QualityMonitor {
         session.summary.add(quality);
         this.d.calls.patch(id, { quality });
         this.d.emit({ callId: id, quality });
+        if (quality.noAudio && !session.warnedNoAudio) {
+          session.warnedNoAudio = true;
+          this.d.logger.warn(`No audio on call (${quality.noAudio}): RTP is not flowing`);
+          this.d.notify?.({
+            level: 'warning',
+            code: 'callNoAudio',
+            title: 'No audio',
+            message:
+              'No sound is getting through on this call. The network may be blocking UDP, or the PBX advertises an address you cannot reach. Try another network, or ask your administrator for a TURN server.',
+            params: { direction: quality.noAudio },
+          });
+        }
       }
     }
     this.schedule(id, session);

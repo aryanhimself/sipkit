@@ -212,6 +212,7 @@ export const ne: Messages = {
   'quality.good': 'राम्रो',
   'quality.fair': 'ठिकै',
   'quality.poor': 'कमजोर',
+  'quality.noAudio': 'आवाज छैन',
   'quality.ariaLabel': 'कलको गुणस्तर: {level}',
   'quality.mos': 'MOS',
   'quality.loss': 'प्याकेट लस आउने / जाने',
@@ -412,4 +413,6 @@ export const ne: Messages = {
   'call.resumingHint': 'कल फर्किएसम्म कल गर्ने व्यक्ति होल्डमा हुनुहुन्छ।',
   'notification.callResumeFailed.title': 'कल समाप्त भयो',
   'notification.callResumeFailed.message': '{name} सँगको कल पुनः जोड्न सकिएन',
+  'notification.callNoAudio.title': 'यो कलमा आवाज छैन',
+  'notification.callNoAudio.message': 'आवाज आइरहेको छैन। नेटवर्कले कल (UDP) रोकिरहेको हुन सक्छ। अर्को Wi-Fi वा मोबाइल डाटा प्रयोग गर्नुहोस्, वा प्रशासकलाई TURN सर्भर राख्न भन्नुहोस्।',
 };

@@ -222,6 +222,7 @@ export class Softphone implements SoftphoneApi {
         this.video.handleQuality(payload.callId, payload.quality);
         this.emitter.emit('call:quality', payload);
       },
+      notify: (n) => this.emitter.emit('notification', n),
     });
     this.video = new VideoController({
       engine: this.engine,

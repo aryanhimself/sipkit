@@ -257,6 +257,12 @@ export interface CallQuality {
   totals: { packetsSent: number; packetsReceived: number; packetsLost: number };
   /** Video streams of a video call (never affects `mos` / `level`). */
   video?: CallVideoQuality;
+  /**
+   * Set when no audio packets moved during this interval: `'receive'` (nothing arrives),
+   * `'send'` (nothing leaves) or `'both'`. Usually a network that blocks UDP or a PBX that
+   * advertises an unreachable address. `mos` is 1 and `level` is `'poor'` while it lasts.
+   */
+  noAudio?: 'receive' | 'send' | 'both';
 }
 
 /** Per-direction video metrics for one sampling interval. */

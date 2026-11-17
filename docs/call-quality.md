@@ -93,3 +93,27 @@ changed. Egress loss shows up as outbound loss through Asterisk's RTCP receiver 
 by hand without the script, run `tc qdisc replace dev eth0 root netem loss 30%` inside any
 container that runs the browser with `--cap-add NET_ADMIN`, and run
 `tc qdisc del dev eth0 root` to undo it.
+
+## No audio on a connected call
+
+If a call connects but no audio packets move during a sampling interval, the sample carries
+`noAudio: 'receive' | 'send' | 'both'`, its `mos` is 1 and its `level` is `'poor'`. The first such
+sample per call also emits a `notification` with code `callNoAudio`, and sipkit-ui shows
+"No audio" in the quality indicator.
+
+Common causes, in the order they usually turn up:
+
+| Symptom (from `chrome://webrtc-internals` or `getStats`) | Cause | Fix |
+|---|---|---|
+| ICE stays `checking`; STUN servers never answer; no `srflx` candidate in the offer | The client network blocks outbound UDP (some hotspots, guest and corporate Wi-Fi) | Use another network, or add a TURN server reachable over TCP/TLS 443 to `iceServers` |
+| Connectivity checks to the PBX's public IP get no responses | The PBX firewall does not allow its RTP port range (e.g. 10000–20000/udp) | Open the range on the PBX host and any cloud security group |
+| The PBX offers only private addresses (`10.x`, `172.16–31.x`, `192.168.x`) | Asterisk behind NAT without an external address | Set `external_media_address` / `external_signaling_address` on the PJSIP transport, or enable ICE with a STUN server in `rtp.conf` |
+
+```ts
+createSoftphone({
+  iceServers: [
+    { urls: 'stun:stun.l.google.com:19302' },
+    { urls: 'turns:turn.example.com:443?transport=tcp', username: 'user', credential: 'secret' },
+  ],
+});
+```

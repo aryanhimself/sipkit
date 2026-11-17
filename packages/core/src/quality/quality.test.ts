@@ -147,6 +147,18 @@ describe('QualityTracker', () => {
     expect(fl.outbound.packetLossPct).toBe(25);
   });
 
+  it('flags intervals where no audio packets move (blocked UDP)', () => {
+    const tr = new QualityTracker();
+    // Outbound stream exists but nothing was sent, and nothing ever arrived (no inbound stats).
+    const dead = tr.push(sample(2000, { outbound: { packetsSent: 0 } }));
+    expect(dead).toMatchObject({ noAudio: 'both', mos: 1, level: 'poor' });
+    const sendOnly = tr.push(sample(4000, { outbound: { packetsSent: 100 } }));
+    expect(sendOnly.noAudio).toBe('receive');
+    const flowing = tr.push(sample(6000, { outbound: { packetsSent: 200 }, inbound: { packetsReceived: 100, packetsLost: 0 } }));
+    expect(flowing.noAudio).toBeUndefined();
+    expect(flowing.mos).toBeGreaterThan(4);
+  });
+
   it('prime() sets a baseline without producing a sample', () => {
     const tr = new QualityTracker();
     tr.push(sample(0, { inbound: { packetsReceived: 100, packetsLost: 50 } }));

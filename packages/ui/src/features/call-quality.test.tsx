@@ -45,6 +45,14 @@ function renderIndicator(q: CallQuality | undefined, state: Call['state'] = 'con
 }
 
 describe('<CallQualityIndicator />', () => {
+  it('says "No audio" when no packets flow', () => {
+    renderIndicator({ ...quality('poor', 1), noAudio: 'both' });
+    const el = screen.getByTestId('call-quality');
+    expect(el.textContent).toBe('No audio');
+    expect(el.getAttribute('aria-label')).toBe('Call quality: No audio');
+    expect(el.dataset.noAudio).toBe('both');
+  });
+
   it.each([
     ['good', 4.4, 3],
     ['fair', 3.8, 2],

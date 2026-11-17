@@ -63,16 +63,18 @@ export function CallQualityIndicator({ call, className }: CallQualityIndicatorPr
   const t = useT();
   if (!quality || call.state !== 'connected') return null;
   const { level } = quality;
-  const bars = LEVEL_BARS[level];
+  const bars = quality.noAudio ? 0 : LEVEL_BARS[level];
+  const label = quality.noAudio ? t('quality.noAudio') : t(LEVEL_TEXT[level]);
   return (
     <TooltipProvider>
       <Tooltip>
         <TooltipTrigger asChild>
           <button
             type="button"
-            aria-label={t('quality.ariaLabel', { level: t(LEVEL_TEXT[level]) })}
+            aria-label={t('quality.ariaLabel', { level: label })}
             data-testid="call-quality"
             data-level={level}
+            data-no-audio={quality.noAudio}
             className={cn(
               'inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 text-xs font-medium outline-none',
               'hover:bg-foreground/5 focus-visible:ring-[3px] focus-visible:ring-ring',
@@ -94,7 +96,7 @@ export function CallQualityIndicator({ call, className }: CallQualityIndicatorPr
                 />
               ))}
             </svg>
-            <span>{t(LEVEL_TEXT[level])}</span>
+            <span>{label}</span>
           </button>
         </TooltipTrigger>
         <TooltipContent side="bottom">

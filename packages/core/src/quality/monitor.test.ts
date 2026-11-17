@@ -56,6 +56,17 @@ describe('QualityMonitor', () => {
     expect(samples.at(-1)?.level).toBe('good');
   });
 
+  it('warns once when a connected call carries no audio', async () => {
+    const { softphone, engine, call, samples } = await connectedCall();
+    const notes: string[] = [];
+    softphone.on('notification', (n) => notes.push(String(n.code)));
+    engine.simulateNetwork(call.id, { lossPct: 100, rttMs: 40, jitterMs: 2 });
+    await tick(2000);
+    expect(samples.at(-1)).toMatchObject({ noAudio: 'receive', level: 'poor', mos: 1 });
+    await tick(4000);
+    expect(notes.filter((c) => c === 'callNoAudio')).toHaveLength(1);
+  });
+
   it('attaches an end-of-call summary to the CDR', async () => {
     const { softphone, engine, call } = await connectedCall();
     const cdrs: Cdr[] = [];
