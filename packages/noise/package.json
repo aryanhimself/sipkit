@@ -1,6 +1,6 @@
 {
   "name": "sipkit-noise",
-  "version": "0.2.1",
+  "version": "0.3.0",
   "description": "sipkit plugin that removes background noise from the outgoing microphone in the browser (RNNoise or Speex in an AudioWorklet)",
   "keywords": [
     "sip",
@@ -54,7 +54,7 @@
     "lint": "eslint ."
   },
   "peerDependencies": {
-    "sipkit-core": "workspace:*"
+    "sipkit-core": "workspace:>=0.2.1 <1.0.0"
   },
   "devDependencies": {
     "@sapphi-red/web-noise-suppressor": "0.4.1",
