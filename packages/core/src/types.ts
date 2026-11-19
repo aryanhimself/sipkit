@@ -487,6 +487,8 @@ export interface SoftphoneSnapshot {
     selected: Partial<Record<AudioDeviceKind, string>>;
     /** Per-kind volume 0..1 set via setVolume (absent = 1). 0 mutes playback/ringing. */
     volume?: Partial<Record<AudioDeviceKind, number>>;
+    /** Microphone permission, read without prompting (`granted` | `prompt` | `denied` | `unknown`). */
+    microphone?: MicrophonePermission;
   };
   /** Name of the engine in use, e.g. "sipjs-webrtc". */
   engine: string;
@@ -657,6 +659,12 @@ export interface EngineStartOptions {
    * advertise `rejoinTimeoutSec` to the PBX (SIP.js: Contact `;sipkit-resume=<s>`).
    */
   resume?: { instanceId: string; rejoinTimeoutSec: number };
+  /**
+   * Plugin microphone processing (`hooks.processMicrophone`). Engines that capture the mic
+   * should pass each captured stream through it and send the returned track; `dispose` is
+   * called once the call stops using it.
+   */
+  processMicrophone?: (input: MediaStream) => Promise<{ stream: MediaStream; dispose: () => void }>;
 }
 
 export interface SoftphoneEngine {
@@ -688,6 +696,8 @@ export interface SoftphoneEngine {
   /** Remote audio playback volume 0..1 (0 = muted). */
   setOutputVolume?(volume: number): void;
   setInputDevice?(deviceId: string): Promise<void>;
+  /** Apply new browser voice processing settings (config `audioProcessing`) to the mic, live on calls in progress. */
+  setAudioProcessing?(settings: ResolvedConfig['audioProcessing']): Promise<void>;
   /** Raw RTP statistics for a call, or undefined when there is no media yet. Enables call quality monitoring. */
   getCallStats?(engineCallId: string): Promise<EngineCallStats | undefined>;
   /**
@@ -821,6 +831,11 @@ export interface SoftphoneApi {
   listDevices(): Promise<AudioDevice[]>;
   setDevice(kind: AudioDeviceKind, deviceId: string): Promise<void>;
   /**
+   * Ask for microphone access only when the browser has not decided yet. When it is already
+   * allowed or blocked, resolves at once without a prompt. Optional for other implementations.
+   */
+  requestMicrophone?(): Promise<MicrophonePermission>;
+  /**
    * Set a volume 0..1. 'speaker' = remote call audio, 'ringer' = ringtone,
    * 'microphone' = stored only (engines may ignore it). 0 mutes playback.
    */
@@ -889,4 +904,5 @@ export type * from './push/types';
 
 // Config types live in config.ts but are re-exported here for convenience.
 import type { ResolvedConfig, SoftphoneConfigInput } from './config';
+import type { MicrophonePermission } from './media/permission';
 export type { ResolvedConfig, SoftphoneConfigInput };

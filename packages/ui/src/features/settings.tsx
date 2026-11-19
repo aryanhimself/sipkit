@@ -16,6 +16,7 @@ import { SHORT_EXTENSION_DIGITS, VALID_PREFIX, saveDialPrefs } from '@/lib/dial-
 import { isFeatureEnabled } from '@/lib/features';
 import { cn } from '@/lib/utils';
 import { PushSettings } from '@/features/push';
+import { MicrophoneAccess, VoiceProcessingSettings } from '@/features/audio-settings';
 
 function Section({ title, children }: { title: string; children: ReactNode }) {
   return (
@@ -225,6 +226,7 @@ export function Settings({ className }: { className?: string }) {
           </p>
         )}
         <Section title={t('settings.audio')}>
+          <MicrophoneAccess />
           <DeviceSelect
             kind="microphone"
             label={t('settings.microphone')}
@@ -251,6 +253,7 @@ export function Settings({ className }: { className?: string }) {
           <Button variant="outline" size="sm" className="justify-self-start" onClick={() => void devices.refresh().catch(() => undefined)}>
             {t('settings.refreshDevices')}
           </Button>
+          <VoiceProcessingSettings onError={(e) => setError(i18n.error(e))} />
         </Section>
         {cfg.video?.enabled && isFeatureEnabled(cfg, 'video') && (
           <>

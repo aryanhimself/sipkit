@@ -40,6 +40,8 @@ import type {
 } from '@/extensions';
 import { createHistoryStore, type HistoryStore } from '@/history-store';
 import { applySavedDialPrefs } from '@/lib/dial-prefs';
+import { applySavedAudioPrefs } from '@/lib/audio-prefs';
+import { MicrophoneAccess } from '@/features/audio-settings';
 import { createI18n, I18nContext } from '@/i18n/context';
 import type { Messages } from '@/i18n/en';
 import { localesVersion, subscribeLocales } from '@/i18n/locales';
@@ -226,7 +228,9 @@ function SoftphoneView({
 
   // ---- saved dialing preferences (Settings → Dialing) -----------------------
   useEffect(() => {
-    applySavedDialPrefs(api).catch(() => undefined);
+    applySavedDialPrefs(api)
+      .then(() => applySavedAudioPrefs(api))
+      .catch(() => undefined);
   }, [api, cfg.username]);
 
   // ---- UI state -------------------------------------------------------------
@@ -435,6 +439,7 @@ function SoftphoneView({
           ) : (
             <div className="flex min-h-0 flex-1 flex-col justify-center gap-2 overflow-y-auto px-4 pt-2 pb-5">
               {slots.idleBanner?.(ctx)}
+              <MicrophoneAccess compact />
               <Dialpad onCall={dial} autoFocus={full ? false : 'if-idle'} />
             </div>
           )}

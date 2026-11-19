@@ -32,6 +32,7 @@ import { PluginHost } from './internal/plugin-host';
 import { SnapshotStore } from './internal/store';
 import { TimerRegistry } from './internal/timers';
 import { getMediaDevices, type MediaDevicesLike } from './media/devices';
+import type { MicrophonePermission } from './media/permission';
 import type { ConferenceMixer } from './media/conference-mixer';
 import { sipjsEngine } from './engines/sipjs';
 import { CallControl } from './internal/call-control';
@@ -133,6 +134,7 @@ export class Softphone implements SoftphoneApi {
   private readonly timers = new TimerRegistry();
   private readonly plugins: PluginHost;
   private readonly devices: DeviceManager;
+  private permissionOffs: Unsubscribe[] | undefined;
   private readonly calls: CallRegistry;
   private readonly control: CallControl;
   private readonly backend: StorageLike;
@@ -423,6 +425,15 @@ export class Softphone implements SoftphoneApi {
     if (this.started) return;
     this.started = true;
     this.devices.watch((e) => this.logger.warn('Device refresh failed', e));
+    this.permissionOffs ??= [
+      // A call that got media proves the mic is allowed; a mic failure may mean it was blocked.
+      this.emitter.on('call:updated', ({ call, previous }) => {
+        if (call.state === 'connected' && previous.state !== 'connected') this.devices.permission.noteGranted();
+      }),
+      this.emitter.on('call:ended', ({ call }) => {
+        if (call.disconnectReason === 'media-error') void this.devices.permission.check();
+      }),
+    ];
     this.devices.list().catch((e: unknown) => this.logger.debug('Device listing failed', e));
     this.resumer.resumeWriting();
     if (this.cfg.resume.enabled) {
@@ -464,6 +475,8 @@ export class Softphone implements SoftphoneApi {
     await this.ready;
     await this.stop();
     this.destroyed = true;
+    for (const off of this.permissionOffs ?? []) off();
+    this.devices.permission.dispose();
     this.voicemail.dispose();
     this.voicemailList.dispose();
     this.push.dispose();
@@ -525,6 +538,11 @@ export class Softphone implements SoftphoneApi {
     this.presence.reconcile();
     this.chat.reconcile();
     this.push.reconcile(prev);
+    if (this.engineRunning && JSON.stringify(prev.audioProcessing) !== JSON.stringify(next.audioProcessing)) {
+      await this.engine.setAudioProcessing?.(next.audioProcessing).catch((e: unknown) =>
+        this.logger.warn('Applying audio processing failed', e),
+      );
+    }
     if (!this.started) return;
     if (transportChanged && this.engineRunning) {
       const reRegister = this.wantRegistered || this.cfg.autoRegister;
@@ -544,6 +562,7 @@ export class Softphone implements SoftphoneApi {
         listener: this.listener,
         logger: this.logger.child('engine'),
         ...(resume ? { resume } : {}),
+        processMicrophone: (input) => this.plugins.processMicrophone(input),
       });
     } catch (error) {
       const err = toEngineError(error, 'Engine start');
@@ -801,6 +820,11 @@ export class Softphone implements SoftphoneApi {
   async setDevice(kind: AudioDeviceKind, deviceId: string): Promise<void> {
     this.assertAlive();
     await this.devices.select(kind, deviceId, this.engineRunning ? this.engine : undefined);
+  }
+
+  async requestMicrophone(): Promise<MicrophonePermission> {
+    this.assertAlive();
+    return this.devices.requestMicrophone();
   }
 
   setVolume(kind: AudioDeviceKind, volume: number): void {

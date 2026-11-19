@@ -14,6 +14,7 @@ import {
   type SoftphoneConfigInput,
 } from 'sipkit-core';
 import { MockSoftphone } from 'sipkit-react/testing';
+import { noiseSuppression } from 'sipkit-noise';
 import {
   Softphone,
   createPseudoLocale,
@@ -197,6 +198,8 @@ function createReal(config: SoftphoneConfigInput): SoftphoneApi {
       contactsPlugin({ initial: DEMO_CONTACTS }),
       ringtonePlugin(),
       browserNotificationsPlugin(),
+      // AI noise removal (sipkit-noise); off by default, switch it on in Settings → Audio.
+      noiseSuppression({ enabled: false }),
     ],
   });
 }

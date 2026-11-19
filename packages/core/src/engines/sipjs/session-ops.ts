@@ -101,14 +101,17 @@ export function audioSender(session: Session): RTCRtpSender | undefined {
   return senders.find((s) => s.track?.kind === 'audio') ?? senders.find((s) => s.track === null);
 }
 
-/** Swap the microphone on a live call; also updates SIP.js' local stream so later operations see it. */
-export async function switchMicrophone(session: Session, deviceId: string, enabled: boolean): Promise<void> {
+/**
+ * Swap the microphone track on a live call (device change, new voice processing settings);
+ * also updates SIP.js' local stream so later operations see it.
+ */
+export async function replaceMicrophoneTrack(session: Session, track: MediaStreamTrack, enabled: boolean): Promise<void> {
   const sdh = webSdh(session);
   const sender = audioSender(session);
-  if (!sdh || !sender || typeof navigator === 'undefined' || !navigator.mediaDevices) return;
-  const stream = await navigator.mediaDevices.getUserMedia({ audio: { deviceId: { exact: deviceId } }, video: false });
-  const track = stream.getAudioTracks()[0];
-  if (!track) return;
+  if (!sdh || !sender) {
+    track.stop();
+    return;
+  }
   track.enabled = enabled;
   const local = sdh.localMediaStream;
   const old = local.getAudioTracks()[0];

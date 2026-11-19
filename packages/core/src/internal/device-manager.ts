@@ -2,10 +2,11 @@ import type { AudioDevice, AudioDeviceKind, SoftphoneEngine, Unsubscribe } from 
 import type { PluginStorage } from '../plugin';
 import { SoftphoneError, toEngineError } from '../errors';
 import { listAudioDevices, watchDeviceChanges, type MediaDevicesLike } from '../media/devices';
+import { MicrophonePermissionWatcher, type MicrophonePermission } from '../media/permission';
 
 type Selected = Partial<Record<AudioDeviceKind, string>>;
 type Volumes = Partial<Record<AudioDeviceKind, number>>;
-type DevicesState = { available: AudioDevice[]; selected: Selected; volume: Volumes };
+type DevicesState = { available: AudioDevice[]; selected: Selected; volume: Volumes; microphone: MicrophonePermission };
 const KINDS: readonly AudioDeviceKind[] = ['microphone', 'speaker', 'ringer', 'camera'];
 const STORAGE_KEY = 'selected';
 const VOLUME_KEY = 'volume';
@@ -19,12 +20,16 @@ export class DeviceManager {
   private selected: Selected;
   private volume: Volumes;
   private unwatch: Unsubscribe | undefined;
+  private unwatchPermission: Unsubscribe | undefined;
+  readonly permission: MicrophonePermissionWatcher;
 
   constructor(
     private readonly mediaDevices: MediaDevicesLike | undefined,
     private readonly storage: PluginStorage,
     private readonly onChange: (devices: DevicesState) => void,
+    permission?: MicrophonePermissionWatcher,
   ) {
+    this.permission = permission ?? new MicrophonePermissionWatcher(mediaDevices);
     const stored = storage.get<Selected>(STORAGE_KEY);
     this.selected = stored && typeof stored === 'object' ? { ...stored } : {};
     const vol = storage.get<Volumes>(VOLUME_KEY);
@@ -32,7 +37,7 @@ export class DeviceManager {
   }
 
   get state(): DevicesState {
-    return { available: this.available, selected: this.selected, volume: this.volume };
+    return { available: this.available, selected: this.selected, volume: this.volume, microphone: this.permission.state };
   }
 
   /** Set a 0..1 volume; 'speaker' is pushed to the engine, 'ringer' is read by the ringtone plugin. */
@@ -57,17 +62,30 @@ export class DeviceManager {
     return this.available;
   }
 
-  /** Start listening for hot-plugged devices (idempotent). */
+  /** Start listening for hot-plugged devices and microphone permission changes (idempotent). Never prompts. */
   watch(onError: (error: unknown) => void): void {
     if (this.unwatch) return;
     this.unwatch = watchDeviceChanges(this.mediaDevices, () => {
       this.list().catch(onError);
     });
+    this.unwatchPermission = this.permission.subscribe((state) => {
+      this.onChange(this.state);
+      // Device names are hidden until the mic is allowed; list again to show them.
+      if (state === 'granted') this.list().catch(onError);
+    });
+    void this.permission.check().then(() => this.onChange(this.state), onError);
   }
 
   unwatchChanges(): void {
     this.unwatch?.();
     this.unwatch = undefined;
+    this.unwatchPermission?.();
+    this.unwatchPermission = undefined;
+  }
+
+  /** Ask for the microphone only when the browser has not decided yet; otherwise return the known state. */
+  requestMicrophone(): Promise<MicrophonePermission> {
+    return this.permission.request();
   }
 
   async select(kind: AudioDeviceKind, deviceId: string, engine: SoftphoneEngine | undefined): Promise<void> {

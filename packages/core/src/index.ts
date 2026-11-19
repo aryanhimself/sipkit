@@ -14,6 +14,7 @@ export {
 } from './storage';
 export { sipjsEngine, SipJsEngine } from './engines/sipjs';
 export { ConferenceMixer } from './media/conference-mixer';
+export { MicrophonePermissionWatcher, type MicrophonePermission } from './media/permission';
 export {
   getConferenceView,
   serverConferenceCapabilities,

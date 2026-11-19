@@ -10,6 +10,7 @@ import type { Logger, SoftphoneApi, Unsubscribe, Call } from './types';
  *  - expose its own API (returned from `setup`), reachable via `api.plugin(id)`
  *  - transform dialed numbers (`hooks.beforeDial`)
  *  - veto/auto-handle incoming calls (`hooks.onIncomingCall`)
+ *  - process the microphone before it is sent (`hooks.processMicrophone`), e.g. noise removal
  *
  * Examples shipped in-repo: call history, contacts, ringtones, CRM lookup.
  */
@@ -33,6 +34,14 @@ export type IncomingCallDecision =
   | { action: 'reject'; statusCode?: number }
   | { action: 'forward'; target: string };
 
+/** Result of {@link PluginHooks.processMicrophone}. */
+export interface ProcessedMicrophone {
+  /** Stream with exactly one audio track; this is what the call sends. */
+  stream: MediaStream;
+  /** Release processing resources (audio graph, worklet). Called once, when the call stops using the stream. The engine stops the input tracks itself. */
+  dispose?(): void;
+}
+
 export interface PluginHooks {
   /** Transform a number before dialing. Runs in plugin registration order. */
   beforeDial?(number: string): string | Promise<string>;
@@ -40,6 +49,13 @@ export interface PluginHooks {
   onIncomingCall?(
     call: Call,
   ): IncomingCallDecision | undefined | Promise<IncomingCallDecision | undefined>;
+  /**
+   * Transform the captured microphone before it goes out on a call (noise removal, filters).
+   * Runs for every new call and every microphone switch, in registration order; each hook gets
+   * the previous hook's output. Return undefined to pass the input through. A throwing hook is
+   * logged and skipped, so the call still has audio.
+   */
+  processMicrophone?(input: MediaStream): ProcessedMicrophone | undefined | Promise<ProcessedMicrophone | undefined>;
 }
 
 export interface PluginInstance<TApi = unknown> {

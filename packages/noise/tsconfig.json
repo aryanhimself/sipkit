@@ -1,0 +1,12 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "outDir": "dist",
+    "baseUrl": ".",
+    "types": ["node"],
+    "paths": {
+      "sipkit-core": ["../core/src/index.ts"]
+    }
+  },
+  "include": ["src", "vitest.config.ts", "tsup.config.ts"]
+}

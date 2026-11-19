@@ -251,6 +251,26 @@ export const configSchema = z.object({
     })
     .default({}),
 
+  /**
+   * The browser's own voice processing on the microphone (docs/audio.md). Changes apply live to
+   * calls in progress. For stronger AI noise removal, add the `sipkit-noise` plugin.
+   */
+  audioProcessing: z
+    .object({
+      /** Remove background noise (fans, hum, street). */
+      noiseSuppression: z.boolean().default(true),
+      /** Stop the caller hearing themselves through your speakers. Keep on unless you use a headset with its own. */
+      echoCancellation: z.boolean().default(true),
+      /** Even out your volume when you move closer to or away from the mic. */
+      autoGainControl: z.boolean().default(true),
+      /**
+       * Isolate your voice from other people talking and keyboard noise, where the browser and OS
+       * support it (Chrome with macOS Voice Isolation). Ignored elsewhere.
+       */
+      voiceIsolation: z.boolean().default(false),
+    })
+    .default({}),
+
   /** 1:1 video calls (V2-VID-01). Conferences stay audio-only. */
   video: z
     .object({

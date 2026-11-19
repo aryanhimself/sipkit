@@ -21,6 +21,7 @@ import {
 } from 'sipkit-core';
 import { createSyntheticVideo, type SyntheticVideo } from 'sipkit-core/testing';
 import type {
+  MicrophonePermission,
   AnswerOptions,
   AppState,
   AudioDevice,
@@ -70,6 +71,10 @@ import type {
  */
 
 export interface MockSoftphoneOptions {
+  /** Starting microphone permission. Default 'granted'. */
+  microphone?: MicrophonePermission;
+  /** What the simulated browser prompt answers on `requestMicrophone()`. Default 'granted'. */
+  microphoneAnswer?: 'granted' | 'denied';
   /** Delay before the transport "connects" and registration completes. Default 300ms. */
   registerDelayMs?: number;
   /** Delay from dialing until the remote party "answers". Default 1500ms. */
@@ -232,6 +237,8 @@ export class MockSoftphone implements SoftphoneApi {
       unreachableChatNumbers: options.unreachableChatNumbers ?? [],
       chatAutoReply: options.chatAutoReply ?? false,
       resumeDelayMs: options.resumeDelayMs ?? 600,
+      microphone: options.microphone ?? 'granted',
+      microphoneAnswer: options.microphoneAnswer ?? 'granted',
     };
     this.resumeStore =
       options.resumeStorage !== undefined
@@ -252,6 +259,7 @@ export class MockSoftphone implements SoftphoneApi {
       calls: [],
       activeCallId: null,
       devices: {
+        microphone: this.opts.microphone ?? 'granted',
         available: this.opts.devices,
         selected: {
           microphone: this.opts.devices.find((d) => d.kind === 'microphone')?.id,
@@ -1307,6 +1315,23 @@ export class MockSoftphone implements SoftphoneApi {
 
   async listDevices(): Promise<AudioDevice[]> {
     return this.snapshot.devices.available;
+  }
+
+  /** Number of simulated browser prompts shown by `requestMicrophone()`. */
+  microphonePrompts = 0;
+
+  async requestMicrophone(): Promise<MicrophonePermission> {
+    const current = this.snapshot.devices.microphone ?? 'unknown';
+    if (current === 'granted' || current === 'denied') return current;
+    this.microphonePrompts += 1;
+    const answer = this.opts.microphoneAnswer ?? 'granted';
+    this.simulateMicrophonePermission(answer);
+    return answer;
+  }
+
+  /** Test helper: the user changed the microphone permission in the browser's site settings. */
+  simulateMicrophonePermission(state: MicrophonePermission): void {
+    this.setSnapshot({ devices: { ...this.snapshot.devices, microphone: state } });
   }
 
   async setDevice(kind: AudioDeviceKind, deviceId: string): Promise<void> {

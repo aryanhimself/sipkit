@@ -12,11 +12,12 @@
     "test:e2e:sip": "./scripts/e2e-sip-docker.sh"
   },
   "dependencies": {
-    "sipkit-core": "workspace:*",
-    "sipkit-react": "workspace:*",
-    "sipkit-ui": "workspace:*",
     "react": "^19.0.0",
-    "react-dom": "^19.0.0"
+    "react-dom": "^19.0.0",
+    "sipkit-core": "workspace:*",
+    "sipkit-noise": "workspace:*",
+    "sipkit-react": "workspace:*",
+    "sipkit-ui": "workspace:*"
   },
   "devDependencies": {
     "@playwright/test": "^1.49.1",

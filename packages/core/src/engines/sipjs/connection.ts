@@ -3,6 +3,7 @@ import {
   RegistererState,
   SIPExtension,
   UserAgent,
+  Web,
   type Invitation,
   type Message,
   type Notification,
@@ -45,6 +46,8 @@ export class SipConnection {
     private readonly onMessage?: (message: Message) => void,
     /** Reload-safe softphone (docs/resume.md): stable +sip.instance and the sipkit-resume Contact param. */
     private readonly resume?: EngineStartOptions['resume'],
+    /** Captures local media for each call (mic settings, plugin processing). Default: plain getUserMedia. */
+    private readonly mediaStreamFactory?: Web.MediaStreamFactory,
   ) {}
 
   get domain(): string {
@@ -234,6 +237,9 @@ export class SipConnection {
             instanceIdAlwaysAdded: true,
             contactParams: { transport: 'ws', 'sipkit-resume': String(this.resume.rejoinTimeoutSec) },
           }
+        : {}),
+      ...(this.mediaStreamFactory
+        ? { sessionDescriptionHandlerFactory: Web.defaultSessionDescriptionHandlerFactory(this.mediaStreamFactory) }
         : {}),
       sessionDescriptionHandlerFactoryOptions: {
         peerConnectionConfiguration: { iceServers: cfg.iceServers },

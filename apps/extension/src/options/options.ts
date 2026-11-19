@@ -79,17 +79,30 @@ async function save(): Promise<void> {
   status.textContent = msg('optionsSaved');
 }
 
-document.getElementById('mic')!.addEventListener('click', () => {
+document.getElementById('mic')!.addEventListener('click', () => void allowMicrophone());
+
+/** Ask for the mic only when Chrome has not decided yet; never prompt again once allowed or blocked. */
+async function allowMicrophone(): Promise<void> {
   const out = document.getElementById('mic-status')!;
-  navigator.mediaDevices
-    .getUserMedia({ audio: true })
-    .then((stream) => {
-      stream.getTracks().forEach((t) => t.stop());
-      out.textContent = msg('optionsMicGranted');
-    })
-    .catch(() => {
-      out.textContent = msg('optionsMicDenied');
-    });
-});
+  const state = await navigator.permissions
+    .query({ name: 'microphone' as PermissionName })
+    .then((s) => s.state)
+    .catch(() => 'prompt' as PermissionState);
+  if (state === 'granted') {
+    out.textContent = msg('optionsMicGranted');
+    return;
+  }
+  if (state === 'denied') {
+    out.textContent = msg('optionsMicDenied');
+    return;
+  }
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    stream.getTracks().forEach((t) => t.stop());
+    out.textContent = msg('optionsMicGranted');
+  } catch {
+    out.textContent = msg('optionsMicDenied');
+  }
+}
 
 void load();

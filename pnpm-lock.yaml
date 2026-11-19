@@ -149,6 +149,9 @@ importers:
       sipkit-core:
         specifier: workspace:*
         version: link:../../packages/core
+      sipkit-noise:
+        specifier: workspace:*
+        version: link:../../packages/noise
       sipkit-react:
         specifier: workspace:*
         version: link:../../packages/react
@@ -206,6 +209,21 @@ importers:
       '@types/node':
         specifier: ^22.10.2
         version: 22.20.5
+      tsup:
+        specifier: ^8.3.5
+        version: 8.5.1(@microsoft/api-extractor@7.60.1(@types/node@22.20.5))(jiti@2.7.0)(postcss@8.5.32)(supports-color@8.1.1)(typescript@5.7.3)(yaml@2.9.1)
+
+  packages/noise:
+    devDependencies:
+      '@sapphi-red/web-noise-suppressor':
+        specifier: 0.4.1
+        version: 0.4.1
+      '@types/node':
+        specifier: ^22.10.2
+        version: 22.20.5
+      sipkit-core:
+        specifier: workspace:*
+        version: link:../core
       tsup:
         specifier: ^8.3.5
         version: 8.5.1(@microsoft/api-extractor@7.60.1(@types/node@22.20.5))(jiti@2.7.0)(postcss@8.5.32)(supports-color@8.1.1)(typescript@5.7.3)(yaml@2.9.1)
@@ -2206,6 +2224,9 @@ packages:
   '@rushstack/ts-command-line@5.3.18':
     resolution: {integrity: sha512-acP68tGx/DJEIQgTqj/xStBRaghN7axV+uAjNasDjVXgHgHaLQ1f16/bbXtw6mNLjURhTORD4fdfbOZM7kyWcw==}
     engines: {node: '>=20.9.0'}
+
+  '@sapphi-red/web-noise-suppressor@0.4.1':
+    resolution: {integrity: sha512-hy2GnF079+zi4n9BZUf+GGIQ1IofApAk6rgGMyMQ3soHfz/GKu1pcCsmePyIHVvUuv1LrFudw9BmmBqoOKay5w==}
 
   '@sindresorhus/is@4.6.0':
     resolution: {integrity: sha512-t09vSN3MdfsyCHoFcTRCH/iUtG7OJ0CsjzB8cjAmKc/va/kIgeDI/TxsigdncE/4be734m0cvIYwNaV4i2XqAw==}
@@ -7381,6 +7402,8 @@ snapshots:
     transitivePeerDependencies:
       - '@types/node'
     optional: true
+
+  '@sapphi-red/web-noise-suppressor@0.4.1': {}
 
   '@sindresorhus/is@4.6.0': {}
 

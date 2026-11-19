@@ -1,0 +1,65 @@
+{
+  "name": "sipkit-noise",
+  "version": "0.2.1",
+  "description": "sipkit plugin that removes background noise from the outgoing microphone in the browser (RNNoise or Speex in an AudioWorklet)",
+  "keywords": [
+    "sip",
+    "softphone",
+    "webrtc",
+    "voip",
+    "noise-suppression",
+    "rnnoise",
+    "audioworklet",
+    "wasm",
+    "sipkit"
+  ],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/aryanhimself/sipkit.git",
+    "directory": "packages/noise"
+  },
+  "homepage": "https://github.com/aryanhimself/sipkit/tree/main/packages/noise#readme",
+  "bugs": {
+    "url": "https://github.com/aryanhimself/sipkit/issues"
+  },
+  "type": "module",
+  "sideEffects": false,
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./assets/*": "./dist/assets/*",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "engines": {
+    "node": ">=18"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "build": "tsup",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint ."
+  },
+  "peerDependencies": {
+    "sipkit-core": "workspace:*"
+  },
+  "devDependencies": {
+    "@sapphi-red/web-noise-suppressor": "0.4.1",
+    "@types/node": "^22.10.2",
+    "sipkit-core": "workspace:*",
+    "tsup": "^8.3.5"
+  }
+}

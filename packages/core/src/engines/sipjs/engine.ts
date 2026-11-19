@@ -26,7 +26,7 @@ import {
   referAndWait,
   reinviteHold,
   sendDtmf,
-  switchMicrophone,
+  replaceMicrophoneTrack,
   webSdh,
 } from './session-ops';
 import {
@@ -68,6 +68,10 @@ export class SipJsEngine implements SoftphoneEngine {
   private audio: RemoteAudio | undefined;
   private entries = new Map<string, Entry>();
   private inputDeviceId: string | undefined;
+  private audioSettings: ResolvedConfig['audioProcessing'] | undefined;
+  private processMicrophone: EngineStartOptions['processMicrophone'];
+  /** Per session description handler: stops the raw mic and disposes plugin processing. */
+  private mediaCleanups = new WeakMap<object, () => void>();
   private cameraDeviceId: string | undefined;
   private outputDeviceId: string | undefined;
   private outputVolume = 1;
@@ -75,11 +79,13 @@ export class SipJsEngine implements SoftphoneEngine {
   private mwi: MwiSubscription | undefined;
   private presence: PresenceSubscriptions | undefined;
 
-  async start({ config, listener, logger, resume }: EngineStartOptions): Promise<void> {
+  async start({ config, listener, logger, resume, processMicrophone }: EngineStartOptions): Promise<void> {
     if (this.connection) await this.stop();
     this.cfg = config;
     this.listener = listener;
     this.logger = logger;
+    this.audioSettings = config.audioProcessing;
+    this.processMicrophone = processMicrophone;
     this.audio = new RemoteAudio(logger.child('audio'));
     if (this.outputDeviceId) await this.audio.setSinkId(this.outputDeviceId);
     this.audio.setVolume(this.outputVolume);
@@ -117,6 +123,7 @@ export class SipJsEngine implements SoftphoneEngine {
         answerMessage(message, code, logger);
       },
       resume,
+      (constraints, sdh) => this.captureMedia(constraints, sdh),
     );
     await this.connection.start();
   }
@@ -406,12 +413,66 @@ export class SipJsEngine implements SoftphoneEngine {
 
   async setInputDevice(deviceId: string): Promise<void> {
     this.inputDeviceId = deviceId;
+    await this.refreshMicrophones();
+  }
+
+  async setAudioProcessing(settings: ResolvedConfig['audioProcessing']): Promise<void> {
+    this.audioSettings = settings;
+    await this.refreshMicrophones();
+  }
+
+  /** Re-capture the mic on every established call with the current device and voice processing. */
+  private async refreshMicrophones(): Promise<void> {
     for (const entry of this.entries.values()) {
       if (!entry.established) continue;
-      await switchMicrophone(entry.session, deviceId, !entry.held && !entry.muted).catch((error: unknown) =>
-        this.logger?.warn('Switching microphone failed', error),
-      );
+      const sdh = webSdh(entry.session);
+      if (!sdh) continue;
+      try {
+        const stream = await this.captureMedia({ audio: this.audioConstraints(), video: false }, sdh);
+        const track = stream.getAudioTracks()[0];
+        if (track) await replaceMicrophoneTrack(entry.session, track, !entry.held && !entry.muted);
+      } catch (error) {
+        this.logger?.warn('Switching microphone failed', error);
+      }
     }
+  }
+
+  /**
+   * Media for a call: getUserMedia with the configured voice processing, then plugin
+   * processing (noise removal). Raw mic tracks that SIP.js does not own are stopped
+   * when the call ends or the mic is captured again.
+   */
+  private async captureMedia(constraints: MediaStreamConstraints, sdh: object): Promise<MediaStream> {
+    if (typeof navigator === 'undefined' || !navigator.mediaDevices) throw new Error('Media devices are not available');
+    if (!constraints.audio && !constraints.video) return new MediaStream();
+    const raw = await navigator.mediaDevices.getUserMedia(constraints);
+    const previous = this.mediaCleanups.get(sdh);
+    this.mediaCleanups.delete(sdh);
+    const audio = raw.getAudioTracks();
+    if (!this.processMicrophone || !audio.length) {
+      previous?.();
+      return raw;
+    }
+    const input = new MediaStream(audio);
+    const { stream, dispose } = await this.processMicrophone(input);
+    if (stream === input) {
+      dispose();
+      previous?.();
+      return raw;
+    }
+    previous?.();
+    this.mediaCleanups.set(sdh, () => {
+      for (const t of audio) t.stop();
+      dispose();
+    });
+    return new MediaStream([...stream.getAudioTracks(), ...raw.getVideoTracks()]);
+  }
+
+  private releaseMedia(session: Session): void {
+    const sdh = webSdh(session);
+    if (!sdh) return;
+    this.mediaCleanups.get(sdh)?.();
+    this.mediaCleanups.delete(sdh);
   }
 
   async getCallStats(engineCallId: string): Promise<EngineCallStats | undefined> {
@@ -492,6 +553,7 @@ export class SipJsEngine implements SoftphoneEngine {
       } else if (state === SessionState.Terminated) {
         entry.dtmf.abort();
         this.audio?.detach(id);
+        this.releaseMedia(session);
         this.entries.delete(id);
         // SIP.js transitions to Terminated *before* invoking requestDelegate.onReject
         // (Inviter.onReject → stateTransition, then the delegate), so the final
@@ -538,9 +600,24 @@ export class SipJsEngine implements SoftphoneEngine {
 
   private constraints(video = false): MediaStreamConstraints {
     return {
-      audio: this.inputDeviceId ? { deviceId: { exact: this.inputDeviceId } } : true,
+      audio: this.audioConstraints(),
       video: video ? this.videoConstraints() : false,
     };
+  }
+
+  /** Selected mic plus the browser's voice processing (config `audioProcessing`). */
+  private audioConstraints(): MediaTrackConstraints {
+    const ap = this.audioSettings ?? this.cfg?.audioProcessing;
+    const c: MediaTrackConstraints & { voiceIsolation?: boolean } = {};
+    if (this.inputDeviceId) c.deviceId = { exact: this.inputDeviceId };
+    if (ap) {
+      c.echoCancellation = ap.echoCancellation;
+      c.noiseSuppression = ap.noiseSuppression;
+      c.autoGainControl = ap.autoGainControl;
+      // Non-standard (Chrome); only sent when wanted so other browsers never see it.
+      if (ap.voiceIsolation) c.voiceIsolation = true;
+    }
+    return c;
   }
 
   /** Configured video constraints plus the selected camera. */

@@ -85,6 +85,46 @@ export class PluginHost {
     return current;
   }
 
+  /** True when some plugin processes the microphone. */
+  hasMicrophoneProcessor(): boolean {
+    return this.loaded.some((p) => p.instance.hooks?.processMicrophone);
+  }
+
+  /**
+   * Chain every processMicrophone hook. Returns the stream to send and one dispose for all
+   * stages. A throwing hook is logged and skipped, so the call always has audio.
+   */
+  async processMicrophone(input: MediaStream): Promise<{ stream: MediaStream; dispose: () => void }> {
+    let stream = input;
+    const disposers: (() => void)[] = [];
+    for (const { id, instance } of this.loaded) {
+      const hook = instance.hooks?.processMicrophone;
+      if (!hook) continue;
+      try {
+        const out = await hook(stream);
+        if (out?.stream && out.stream.getAudioTracks().length) {
+          stream = out.stream;
+          if (out.dispose) disposers.push(out.dispose);
+        }
+      } catch (error) {
+        this.logger.warn(`processMicrophone hook of "${id}" failed; sending the unprocessed mic`, error);
+      }
+    }
+    let disposed = false;
+    const dispose = () => {
+      if (disposed) return;
+      disposed = true;
+      for (const d of disposers.reverse()) {
+        try {
+          d();
+        } catch (error) {
+          this.logger.warn('Disposing microphone processing failed', error);
+        }
+      }
+    };
+    return { stream, dispose };
+  }
+
   /** First non-undefined decision wins. */
   async onIncomingCall(call: Call): Promise<IncomingCallDecision | undefined> {
     for (const { id, instance } of this.loaded) {

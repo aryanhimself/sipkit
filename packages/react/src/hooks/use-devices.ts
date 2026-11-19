@@ -1,5 +1,5 @@
 import { useCallback, useEffect } from 'react';
-import type { AudioDevice, AudioDeviceKind } from 'sipkit-core';
+import type { AudioDevice, AudioDeviceKind, MicrophonePermission } from 'sipkit-core';
 import { shallowEqual } from '../equality';
 import { useSoftphone } from './use-softphone';
 import { useSoftphoneSnapshot } from './use-softphone-snapshot';
@@ -18,6 +18,10 @@ export interface UseDevicesResult {
   setDevice: (kind: AudioDeviceKind, deviceId: string) => Promise<void>;
   /** Re-enumerate devices (e.g. after granting mic permission). */
   refresh: () => Promise<AudioDevice[]>;
+  /** Microphone permission, read without prompting. */
+  microphone: MicrophonePermission;
+  /** Ask for the mic only if the browser has not decided yet; never prompts twice. */
+  requestMicrophone: () => Promise<MicrophonePermission>;
 }
 
 /** Audio devices + selection. Enumerates once on mount unless `{ enumerate: false }`. */
@@ -37,6 +41,11 @@ export function useDevices(options: { enumerate?: boolean } = {}): UseDevicesRes
     [api],
   );
 
+  const requestMicrophone = useCallback(
+    async (): Promise<MicrophonePermission> => (api.requestMicrophone ? api.requestMicrophone() : 'unknown'),
+    [api],
+  );
+
   useEffect(() => {
     if (enumerate) api.listDevices().catch(() => undefined);
   }, [api, enumerate]);
@@ -52,5 +61,7 @@ export function useDevices(options: { enumerate?: boolean } = {}): UseDevicesRes
     setVolume,
     setDevice,
     refresh,
+    microphone: devices.microphone ?? 'unknown',
+    requestMicrophone,
   };
 }
