@@ -1,6 +1,6 @@
 {
   "name": "sipkit-engine-native",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "sipkit SoftphoneEngine over a native SIP stack (baresip sidecar via IPC): plain SIP over UDP/TCP/TLS for desktop shells and Node",
   "keywords": [
     "sip",

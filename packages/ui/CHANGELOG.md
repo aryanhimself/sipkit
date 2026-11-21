@@ -1,5 +1,18 @@
 # sipkit-ui
 
+## 0.3.1
+
+### Patch Changes
+
+- 07f2ca1: Settings changes now work when the phone runs elsewhere (browser extension, shared leader tab).
+
+  - core: remote clients can change preferences (`audioProcessing`, `techPrefix`, `techPrefixMinDigits`); before, the host dropped everything except login keys, so these switches did nothing from the extension popup or a follower tab. New `pickPreferences()` and `serveSoftphone({ onPreferences })`. A partial `audioProcessing` change keeps the other switches.
+  - ui: `<Softphone microphoneHelp={{ blocked, onAllow }}>` for apps where mic access is granted somewhere else (the extension popup opens Options). `MicrophoneAccess` and `VoiceProcessingSettings` are exported.
+
+- Updated dependencies [07f2ca1]
+  - sipkit-core@0.3.1
+  - sipkit-react@0.3.1
+
 ## 0.3.0
 
 ### Minor Changes
