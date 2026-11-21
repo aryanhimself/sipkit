@@ -1,4 +1,4 @@
-import { useId, useState } from 'react';
+import { createContext, useContext, useId, useState } from 'react';
 import { CheckCircle2Icon, MicIcon, MicOffIcon } from 'lucide-react';
 import type { MicrophonePermission } from 'sipkit-core';
 import { useDevices, useSoftphone, useSoftphoneSnapshot } from 'sipkit-react';
@@ -49,6 +49,16 @@ function Toggle({
   );
 }
 
+/** See `SoftphoneProps.microphoneHelp`. */
+export interface MicrophoneHelp {
+  /** Replaces the "how to unblock" text shown when the mic is blocked. */
+  blocked?: string;
+  /** Replaces the in-page prompt behind "Allow microphone" (and adds the button to the blocked notice). */
+  onAllow?: () => void;
+}
+
+export const MicrophoneHelpContext = createContext<MicrophoneHelp | undefined>(undefined);
+
 /**
  * Microphone access, read without prompting. Offers "Allow microphone" only while the browser
  * has not decided; when blocked it explains how to unblock instead of asking again.
@@ -56,6 +66,7 @@ function Toggle({
 export function MicrophoneAccess({ compact = false }: { compact?: boolean }) {
   const t = useT();
   const { microphone, requestMicrophone } = useDevices({ enumerate: false });
+  const help = useContext(MicrophoneHelpContext);
   const [asking, setAsking] = useState(false);
   if (microphone === 'granted') {
     if (compact) return null;
@@ -75,14 +86,25 @@ export function MicrophoneAccess({ compact = false }: { compact?: boolean }) {
         className="flex items-start gap-2 rounded-md border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs text-amber-900 dark:text-amber-200"
       >
         <MicOffIcon aria-hidden className="mt-0.5 size-3.5 shrink-0" />
-        <span>
-          <span className="font-medium">{t('mic.blocked')}</span> {t('mic.blockedHelp')}
+        <span className="grid gap-1.5">
+          <span>
+            <span className="font-medium">{t('mic.blocked')}</span> {help?.blocked ?? t('mic.blockedHelp')}
+          </span>
+          {help?.onAllow && (
+            <button type="button" className="justify-self-start font-medium underline underline-offset-2" onClick={help.onAllow}>
+              {t('mic.fix')}
+            </button>
+          )}
         </span>
       </div>
     );
   }
   if (compact) return null;
   const ask = async () => {
+    if (help?.onAllow) {
+      help.onAllow();
+      return;
+    }
     setAsking(true);
     try {
       await requestMicrophone();

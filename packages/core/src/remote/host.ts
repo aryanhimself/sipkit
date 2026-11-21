@@ -7,6 +7,7 @@ import type { Cdr, SoftphoneApi, SoftphoneEvents, Unsubscribe } from '../types';
 import {
   REMOTE_EVENTS,
   parseClientMessage,
+  pickPreferences,
   pickProvisioning,
   publicConfig,
   remoteMessage,
@@ -57,6 +58,12 @@ export interface RemoteHostOptions {
    * `api.updateConfig`. Throw to refuse (the client's promise rejects).
    */
   onUpdateConfig?: (patch: SoftphoneConfigInput) => Promise<void>;
+  /**
+   * Handles preference changes from this client (`audioProcessing`, `techPrefix`,
+   * `techPrefixMinDigits`), already validated. Default: `api.updateConfig`. Use it to persist
+   * them where the instance runs.
+   */
+  onPreferences?: (patch: SoftphoneConfigInput) => Promise<void>;
   /** Commands per second before the client is throttled (default 30). */
   maxCommandsPerSecond?: number;
   /** Called once when the client went away or the host disposed the session. */
@@ -139,9 +146,20 @@ export function serveSoftphone(api: SoftphoneApi, transport: RemoteTransport, op
     const a = m.args.map((x) => (x === null ? undefined : x)) as never[];
     switch (m.name) {
       case 'updateConfig': {
+        const prefs = pickPreferences(m.args[0]);
+        // Merge a partial audioProcessing with the current one so other switches keep their value.
+        if (prefs.audioProcessing) prefs.audioProcessing = { ...api.config.audioProcessing, ...prefs.audioProcessing };
+        const hasPrefs = Object.keys(prefs).length > 0;
+        if (hasPrefs) {
+          if (options.onPreferences) await options.onPreferences(prefs);
+          else await api.updateConfig(prefs);
+        }
         const patch = pickProvisioning(m.args[0]);
-        if (options.onUpdateConfig) await options.onUpdateConfig(patch);
-        else await api.updateConfig(patch);
+        // A preferences-only change must not trigger provisioning (approval windows, re-register).
+        if (Object.keys(patch).length || !hasPrefs) {
+          if (options.onUpdateConfig) await options.onUpdateConfig(patch);
+          else await api.updateConfig(patch);
+        }
         return undefined;
       }
       case 'mute':

@@ -263,6 +263,7 @@ export const en = {
   'mic.allowHelp': 'Your browser asks once. After that, calls start without asking.',
   'mic.blocked': 'Microphone blocked.',
   'mic.blockedHelp': "Callers can't hear you. Click the icon left of the address bar, set Microphone to Allow, then reload.",
+  'mic.fix': 'Fix microphone access',
   'settings.noDevices': 'No devices found',
   'settings.systemDefault': 'System default',
   'settings.unnamedDevice': 'Unnamed device',

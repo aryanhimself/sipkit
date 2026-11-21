@@ -177,5 +177,14 @@
   },
   "approveDeny": {
     "message": "Don't allow"
+  },
+  "optionsNoiseRemoval": {
+    "message": "AI noise removal on your microphone"
+  },
+  "optionsNoiseRemovalHint": {
+    "message": "Removes barking, traffic and nearby voices from what callers hear. Uses a little more CPU. The browser’s own noise filter stays on either way."
+  },
+  "popupMicBlocked": {
+    "message": "The phone can’t use your microphone, so callers can’t hear you. Open Options and click “Allow microphone”."
   }
 }

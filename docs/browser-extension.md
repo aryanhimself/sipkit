@@ -158,7 +158,18 @@ pages is `script-src 'self'`.
   registered yet the number is queued for 60 s and dialled once it is (Options open if nothing
   is configured).
 - **Options**: account, engine (SIP over WebRTC, or the mock engine for demos / tests), allowed
-  sites, approved sites, CRM URL, click-to-call, notifications, microphone.
+  sites, approved sites, CRM URL, click-to-call, notifications, AI noise removal, microphone.
+- **Microphone**: the mic belongs to the extension (its offscreen document / background page),
+  so permission is granted once on the Options page ("Allow microphone"); it asks only while
+  Chrome has not decided. The popup reads the state without prompting; when blocked it says so
+  and its "Fix microphone access" / "Allow microphone" buttons open Options
+  (`<Softphone microphoneHelp>`).
+- **Noise and echo** ([audio.md](audio.md)): the switches in the widget's Settings → Audio
+  (noise suppression, voice isolation, echo cancellation, automatic volume) and the dial prefix
+  work from the popup and from attached pages. They reach the host as preferences
+  (`pickPreferences`, no site approval needed), are saved in the extension settings and survive
+  restarts. **AI noise removal** (`sipkit-noise`) runs in the host; switch it in Options. Its
+  worklet and wasm ship under `noise/`, and the CSP allows `'wasm-unsafe-eval'` for them.
 - **i18n**: extension strings in `public/_locales/{en,ne}`; the widget uses the UI catalogue.
 
 ## Building

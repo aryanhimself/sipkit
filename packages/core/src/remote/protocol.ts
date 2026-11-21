@@ -348,6 +348,31 @@ export const PROVISION_KEYS = [
   'autoRegister',
 ] as const;
 
+/**
+ * Per-user preferences a client may change with `updateConfig` (Settings screen): voice
+ * processing and the dial prefix. They never touch credentials or the transport, so they do
+ * not need the provisioning approval.
+ */
+export const PREFERENCE_KEYS = ['audioProcessing', 'techPrefix', 'techPrefixMinDigits'] as const;
+
+const AUDIO_KEYS = ['noiseSuppression', 'echoCancellation', 'autoGainControl', 'voiceIsolation'] as const;
+
+/** Keep only {@link PREFERENCE_KEYS} with valid values. */
+export function pickPreferences(patch: unknown): SoftphoneConfigInput {
+  if (!isObject(patch)) return {};
+  const out: Record<string, unknown> = {};
+  const ap = patch.audioProcessing;
+  if (isObject(ap)) {
+    const audio: Record<string, boolean> = {};
+    for (const k of AUDIO_KEYS) if (typeof ap[k] === 'boolean') audio[k] = ap[k] as boolean;
+    if (Object.keys(audio).length) out.audioProcessing = audio;
+  }
+  if (typeof patch.techPrefix === 'string' && /^[0-9*#+]{0,8}$/.test(patch.techPrefix)) out.techPrefix = patch.techPrefix;
+  const min = patch.techPrefixMinDigits;
+  if (typeof min === 'number' && Number.isInteger(min) && min >= 0 && min <= 32) out.techPrefixMinDigits = min;
+  return out as SoftphoneConfigInput;
+}
+
 /** Keep only {@link PROVISION_KEYS} with plausible value types. */
 export function pickProvisioning(patch: unknown): SoftphoneConfigInput {
   if (!isObject(patch)) return {};

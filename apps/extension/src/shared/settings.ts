@@ -4,6 +4,7 @@
  * by content scripts). See docs/browser-extension.md.
  */
 import type { SoftphoneConfigInput } from 'sipkit-core';
+import { pickPreferences } from 'sipkit-core/remote';
 
 declare const __SIPKIT_DEFAULT_ORIGINS__: string[] | undefined;
 declare const __SIPKIT_SOFTPHONE_URL__: string | undefined;
@@ -32,6 +33,17 @@ export interface Settings {
   /** OS notifications for incoming / missed calls. */
   notifications: boolean;
   brandName: string;
+  /** AI noise removal (sipkit-noise) on the outgoing microphone. */
+  noiseRemoval: boolean;
+  /** Per-user preferences changed from the softphone's Settings screen (popup or an attached page). */
+  preferences: Preferences;
+}
+
+/** Preference keys a client may change (validated by `pickPreferences` in sipkit-core/remote). */
+export interface Preferences {
+  audioProcessing?: { noiseSuppression?: boolean; echoCancellation?: boolean; autoGainControl?: boolean; voiceIsolation?: boolean };
+  techPrefix?: string;
+  techPrefixMinDigits?: number;
 }
 
 export interface Secrets {
@@ -57,6 +69,8 @@ export function defaultSettings(): Settings {
     clickToCall: false,
     notifications: true,
     brandName: 'SipKit',
+    noiseRemoval: false,
+    preferences: {},
   };
 }
 
@@ -85,6 +99,8 @@ export function sanitizeSettings(raw: unknown): Settings {
     clickToCall: r.clickToCall === true,
     notifications: r.notifications !== false,
     brandName: str(r.brandName, 64) || d.brandName,
+    noiseRemoval: r.noiseRemoval === true,
+    preferences: pickPreferences(r.preferences) as Preferences,
   };
 }
 
@@ -105,6 +121,7 @@ export function buildConfig(settings: Settings, secrets: Secrets): SoftphoneConf
     ...(a.authUsername ? { authUsername: a.authUsername } : {}),
     password: secrets.password,
     registerHeaders: secrets.registerHeaders,
+    ...settings.preferences,
     // The extension instance itself is always local.
     instance: { mode: 'local' },
   };

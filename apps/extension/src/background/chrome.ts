@@ -12,6 +12,7 @@ import {
   getSettings,
   handleApproval,
   handleProvision,
+  savePreferences,
   initStorageAccess,
   isAllowedClient,
   isExtensionSender,
@@ -106,6 +107,8 @@ chrome.runtime.onMessage.addListener((raw: unknown, sender, sendResponse) => {
       return fromOffscreen ? reply(controller.onSummary(m.summary as HostSummary)) : false;
     case 'sipkit:host-cdr':
       return fromOffscreen ? reply(controller.onCdr(m.cdr as Cdr)) : false;
+    case 'sipkit:preferences':
+      return fromOffscreen ? reply(savePreferences(m.patch as object, pushConfig)) : false;
     case 'sipkit:provision':
       return fromOffscreen ? reply(handleProvision(m.origin, m.trusted, m.patch as object, pushConfig)) : false;
     default:

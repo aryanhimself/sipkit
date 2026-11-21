@@ -20,6 +20,7 @@ import {
   type RemoteHostSession,
 } from 'sipkit-core/remote';
 import { MockSoftphone } from 'sipkit-react/testing';
+import { NOISE_SUPPRESSION_PLUGIN_ID, noiseSuppression } from 'sipkit-noise';
 import { RuntimePortTransport, type HostSummary } from '../shared/ext';
 import { buildConfig, isConfigured, sanitizeSecrets, sanitizeSettings, type Secrets, type Settings } from '../shared/settings';
 
@@ -29,6 +30,8 @@ export const MOCK_DEBUG = ['simulateIncomingCall', 'simulateRemoteHangup'];
 export interface HostLink {
   /** A client asked to provision credentials; resolves once stored and applied, rejects when refused. */
   provision(origin: string, trusted: boolean, patch: SoftphoneConfigInput): Promise<void>;
+  /** A client changed a preference (voice processing, dial prefix): persist it and re-apply. */
+  savePreferences(patch: SoftphoneConfigInput): Promise<void>;
   onSummary(summary: HostSummary): void;
   onCdr(cdr: Cdr): void;
 }
@@ -41,6 +44,11 @@ export interface ExtensionHost {
   debug(method: string, args: unknown[]): Promise<unknown>;
   readonly settings: Settings;
   readonly api: SoftphoneApi | null;
+}
+
+function noiseAssetsUrl(): string | undefined {
+  const rt = (globalThis as { chrome?: { runtime?: { getURL?: (p: string) => string } } }).chrome?.runtime;
+  return typeof rt?.getURL === 'function' ? rt.getURL('noise/') : undefined;
 }
 
 export function summarize(snapshot: SoftphoneSnapshot, configured: boolean): HostSummary {
@@ -98,7 +106,15 @@ export function createExtensionHost(link: HostLink, options: { version: string }
     const instance: SoftphoneApi =
       settings.engine === 'mock'
         ? new MockSoftphone(config, { plugins: [callHistoryPlugin()], engineName: 'mock-engine' })
-        : createSoftphone({ config, plugins: [callHistoryPlugin(), ringtonePlugin()] });
+        : createSoftphone({
+            config,
+            plugins: [
+              callHistoryPlugin(),
+              ringtonePlugin(),
+              // AI noise removal; the worklet and wasm ship in the extension under noise/.
+              noiseSuppression({ enabled: settings.noiseRemoval, assetsBaseUrl: noiseAssetsUrl() }),
+            ],
+          });
     api = instance;
     engine = settings.engine;
     cdrLog = createCdrLog(instance);
@@ -110,7 +126,13 @@ export function createExtensionHost(link: HostLink, options: { version: string }
     emitSummary();
   }
 
+  /** Follow the Options switch live, without restarting the instance. */
+  function applyNoiseRemoval(): void {
+    api?.plugin<{ setEnabled(on: boolean): void }>(NOISE_SUPPRESSION_PLUGIN_ID)?.setEnabled(settings.noiseRemoval);
+  }
+
   async function apply(): Promise<void> {
+    applyNoiseRemoval();
     const config = buildConfig(settings, secrets);
     const key = JSON.stringify(config);
     if (!api || engine !== settings.engine) {
@@ -157,6 +179,7 @@ export function createExtensionHost(link: HostLink, options: { version: string }
         },
         cdrLog: cdrLog ?? undefined,
         onUpdateConfig: (patch) => link.provision(origin, trusted, patch),
+        onPreferences: (patch) => link.savePreferences(patch),
         onClose: () => sessions.delete(session),
       });
       sessions.add(session);

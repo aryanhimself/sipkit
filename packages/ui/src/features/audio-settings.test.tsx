@@ -1,6 +1,6 @@
 import { act, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { definePlugin } from 'sipkit-core';
 import { Softphone } from '@/softphone';
 import { createPhone } from '@/test/utils';
@@ -45,6 +45,25 @@ describe('microphone permission', () => {
     expect(screen.queryByRole('button', { name: 'Allow microphone' })).toBeNull();
     act(() => phone.simulateMicrophonePermission('granted'));
     expect(screen.queryByTestId('mic-access')).toBeNull();
+  });
+});
+
+describe('microphone help from the host app (extension popup)', () => {
+  it('uses the host text and action instead of in-page prompts', async () => {
+    const onAllow = vi.fn();
+    const user = userEvent.setup();
+    const phone = createPhone({}, { microphone: 'prompt' });
+    render(<Softphone softphone={phone} toaster={false} microphoneHelp={{ blocked: 'Open Options to allow it.', onAllow }} />);
+    await waitFor(() => expect(screen.getByTestId('registration-pill').dataset.state).toBe('registered'));
+    await user.click(screen.getByRole('tab', { name: 'Settings' }));
+    await user.click(screen.getByRole('button', { name: 'Allow microphone' }));
+    expect(onAllow).toHaveBeenCalledTimes(1);
+    expect(phone.microphonePrompts).toBe(0);
+    act(() => phone.simulateMicrophonePermission('denied'));
+    const notices = screen.getAllByTestId('mic-access');
+    expect(notices[0]!.textContent).toContain('Open Options to allow it.');
+    await user.click(screen.getAllByRole('button', { name: 'Fix microphone access' })[0]!);
+    expect(onAllow).toHaveBeenCalledTimes(2);
   });
 });
 

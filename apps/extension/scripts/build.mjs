@@ -47,6 +47,20 @@ const define = {
   'process.env.NODE_ENV': JSON.stringify('production'),
 };
 
+/**
+ * sipkit-noise points at its worklet/wasm with `new URL('./assets/…', import.meta.url)`, which Vite
+ * would copy (pages) or inline as ~1 MB of base64 (background IIFE). The host passes
+ * `assetsBaseUrl` (noise/ in the extension) instead, so hide those defaults from Vite.
+ */
+const noiseAssetsPlugin = {
+  name: 'sipkit-noise-external-assets',
+  enforce: 'pre',
+  transform(code, id) {
+    if (!/[\\/]sipkit-noise[\\/]|[\\/]packages[\\/]noise[\\/]/.test(id) || !code.includes('import.meta.url')) return null;
+    return { code: code.replaceAll('import.meta.url', 'self.location.href'), map: null };
+  },
+};
+
 rmSync(out, { recursive: true, force: true });
 mkdirSync(out, { recursive: true });
 
@@ -59,7 +73,7 @@ await build({
   root: src,
   base: '/',
   publicDir: join(root, 'public'),
-  plugins: [react()],
+  plugins: [react(), noiseAssetsPlugin],
   define,
   build: {
     outDir: out,
@@ -87,6 +101,7 @@ async function iife(entry, fileName) {
     logLevel: 'warn',
     root,
     publicDir: false,
+    plugins: [noiseAssetsPlugin],
     define,
     build: {
       outDir: out,
@@ -102,7 +117,14 @@ async function iife(entry, fileName) {
 await iife(`background/${target}.ts`, 'background.js');
 await iife('content/content.ts', 'content.js');
 
-// 3. Icons (generated: no binaries in the repo).
+// 3. AI noise removal assets (sipkit-noise): worklet + wasm, loaded from noise/ at runtime.
+const noiseAssets = join(root, 'node_modules', 'sipkit-noise', 'dist', 'assets');
+mkdirSync(join(out, 'noise'), { recursive: true });
+for (const name of readdirSync(noiseAssets)) {
+  writeFileSync(join(out, 'noise', name), readFileSync(join(noiseAssets, name)));
+}
+
+// 3b. Icons (generated: no binaries in the repo).
 mkdirSync(join(out, 'icons'), { recursive: true });
 for (const size of [16, 32, 48, 128]) writeFileSync(join(out, 'icons', `icon-${size}.png`), iconPng(size));
 
@@ -128,7 +150,8 @@ const manifest = {
     'hangup-call': { suggested_key: { default: 'Alt+Shift+H' }, description: '__MSG_cmdHangup__' },
   },
   content_security_policy: {
-    extension_pages: "script-src 'self'; object-src 'self'",
+    // 'wasm-unsafe-eval': the AI noise removal worklet compiles its WebAssembly model.
+    extension_pages: "script-src 'self' 'wasm-unsafe-eval'; object-src 'self'",
   },
   ...(target === 'chrome'
     ? { background: { service_worker: 'background.js' }, minimum_chrome_version: '116' }

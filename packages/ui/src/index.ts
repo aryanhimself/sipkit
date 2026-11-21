@@ -2,6 +2,7 @@ import './styles.css';
 
 export { Softphone } from './softphone';
 export type { SoftphoneProps } from './softphone';
+export { MicrophoneAccess, VoiceProcessingSettings, type MicrophoneHelp } from './features/audio-settings';
 
 // Feature components (compose your own layout inside <SoftphoneProvider>)
 export { StatusBar, RegistrationPill } from './features/status-bar';

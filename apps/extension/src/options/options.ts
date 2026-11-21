@@ -35,6 +35,7 @@ async function load(): Promise<void> {
   field('softphoneUrl').value = settings.softphoneUrl;
   field('clickToCall').checked = settings.clickToCall;
   field('notifications').checked = settings.notifications;
+  field('noiseRemoval').checked = settings.noiseRemoval;
 }
 
 form.addEventListener('submit', (e) => {
@@ -66,6 +67,7 @@ async function save(): Promise<void> {
     softphoneUrl: field('softphoneUrl').value.trim(),
     clickToCall: field('clickToCall').checked,
     notifications: field('notifications').checked,
+    noiseRemoval: field('noiseRemoval').checked,
   });
 
   // Optional host permissions, asked from this click: extra sites, and all sites for click-to-call.

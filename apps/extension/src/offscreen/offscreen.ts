@@ -24,6 +24,9 @@ const host = createExtensionHost(
     provision: async (origin, trusted, patch) => {
       await toWorker({ type: 'sipkit:provision', origin, trusted, patch });
     },
+    savePreferences: async (patch) => {
+      await toWorker({ type: 'sipkit:preferences', patch });
+    },
     onSummary: (summary) => void toWorker({ type: 'sipkit:host-state', summary }).catch(() => undefined),
     onCdr: (cdr) => void toWorker({ type: 'sipkit:host-cdr', cdr }).catch(() => undefined),
   },

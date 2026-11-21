@@ -122,6 +122,9 @@ importers:
       sipkit-core:
         specifier: workspace:*
         version: link:../../packages/core
+      sipkit-noise:
+        specifier: workspace:*
+        version: link:../../packages/noise
       sipkit-react:
         specifier: workspace:*
         version: link:../../packages/react

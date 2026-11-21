@@ -155,3 +155,19 @@ base('without the extension the page falls back to its own instance', async ({ p
   await page.getByRole('button', { name: 'Sign in' }).click();
   await expect(page.getByTestId('registration-pill')).toHaveAttribute('data-state', 'registered');
 });
+
+test('AI noise removal assets load and the wasm compiles under the extension CSP', async ({ ext }) => {
+  const page = await ext.context.newPage();
+  await page.goto(`chrome-extension://${ext.id}/options.html`);
+  const result = await page.evaluate(async () => {
+    const ctx = new AudioContext({ sampleRate: 48000 });
+    await ctx.audioWorklet.addModule(chrome.runtime.getURL('noise/rnnoise-worklet.js'));
+    const bytes = await (await fetch(chrome.runtime.getURL('noise/rnnoise_simd.wasm'))).arrayBuffer();
+    await WebAssembly.compile(bytes);
+    await ctx.close();
+    return { wasmBytes: bytes.byteLength };
+  });
+  expect(result.wasmBytes).toBeGreaterThan(100_000);
+  // The Options page offers the switch.
+  await expect(page.locator('input[name="noiseRemoval"]')).toBeVisible();
+});

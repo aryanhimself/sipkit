@@ -58,7 +58,15 @@ function Popup() {
         </p>
       ) : (
         <div className="ext-widget">
-          <Softphone softphone={remote} layout="compact" theme="system" locale={uiLocale()} persistHistory={false} />
+          <Softphone
+            softphone={remote}
+            layout="compact"
+            theme="system"
+            locale={uiLocale()}
+            persistHistory={false}
+            // The mic belongs to the extension, not this popup: permission is granted on the Options page.
+            microphoneHelp={{ blocked: msg('popupMicBlocked'), onAllow: () => void chrome.runtime.openOptionsPage() }}
+          />
         </div>
       )}
     </>

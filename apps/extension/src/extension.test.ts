@@ -158,11 +158,29 @@ async function until(check: () => boolean, ms = 3000): Promise<void> {
   }
 }
 
+describe('preferences and noise removal settings', () => {
+  it('keeps valid preferences and applies them to the softphone config', () => {
+    const settings = sanitizeSettings({
+      noiseRemoval: true,
+      preferences: { audioProcessing: { voiceIsolation: true, junk: 1 }, techPrefix: '9', password: 'nope' },
+    });
+    expect(settings.noiseRemoval).toBe(true);
+    expect(settings.preferences).toEqual({ audioProcessing: { voiceIsolation: true }, techPrefix: '9' });
+    const cfg = buildConfig(settings, sanitizeSecrets({ password: 'p' }));
+    expect(cfg).toMatchObject({ techPrefix: '9', audioProcessing: { voiceIsolation: true }, password: 'p' });
+    expect(sanitizeSettings({}).noiseRemoval).toBe(false);
+  });
+});
+
 describe('extension host (mock engine)', () => {
   it('serves clients over runtime ports, reports summaries and routes provisioning', async () => {
     const summaries: HostSummary[] = [];
     const provision = vi.fn(async () => undefined);
-    const host = createExtensionHost({ provision, onSummary: (s) => summaries.push(s), onCdr: () => undefined }, { version: '1.2.3' });
+    const savePreferences = vi.fn(async () => undefined);
+    const host = createExtensionHost(
+      { provision, savePreferences, onSummary: (s) => summaries.push(s), onCdr: () => undefined },
+      { version: '1.2.3' },
+    );
     await host.configure(
       { engine: 'mock', account: { username: '1001', websocketUrls: [] }, allowedOrigins: ['http://localhost/*'] },
       { password: 'secret' },
@@ -186,6 +204,14 @@ describe('extension host (mock engine)', () => {
 
     await remote.updateConfig({ username: '1002', password: 'x', techPrefix: '9' });
     expect(provision).toHaveBeenCalledWith('http://localhost:5197', false, { username: '1002', password: 'x' });
+    // Settings-screen preferences are saved by the background, without provisioning.
+    expect(savePreferences).toHaveBeenCalledWith({ techPrefix: '9' });
+    provision.mockClear();
+    await remote.updateConfig({ audioProcessing: { noiseSuppression: false } });
+    expect(savePreferences).toHaveBeenLastCalledWith({
+      audioProcessing: expect.objectContaining({ noiseSuppression: false, echoCancellation: true }),
+    });
+    expect(provision).not.toHaveBeenCalled();
     remote.disconnect();
   });
 

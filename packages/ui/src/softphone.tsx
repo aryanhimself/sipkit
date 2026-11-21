@@ -41,7 +41,7 @@ import type {
 import { createHistoryStore, type HistoryStore } from '@/history-store';
 import { applySavedDialPrefs } from '@/lib/dial-prefs';
 import { applySavedAudioPrefs } from '@/lib/audio-prefs';
-import { MicrophoneAccess } from '@/features/audio-settings';
+import { MicrophoneAccess, MicrophoneHelpContext, type MicrophoneHelp } from '@/features/audio-settings';
 import { createI18n, I18nContext } from '@/i18n/context';
 import type { Messages } from '@/i18n/en';
 import { localesVersion, subscribeLocales } from '@/i18n/locales';
@@ -113,6 +113,12 @@ export interface SoftphoneProps {
   showLogin?: boolean;
   /** Persist the built-in call history in localStorage. Default true. */
   persistHistory?: boolean;
+  /**
+   * Where microphone access is granted when it is not this page (browser extension popup,
+   * another app). `blocked` replaces the "Microphone blocked" help text; `onAllow` replaces
+   * the in-page permission prompt behind "Allow microphone" (e.g. open the extension options).
+   */
+  microphoneHelp?: MicrophoneHelp;
   className?: string;
   style?: CSSProperties;
 }
@@ -187,6 +193,7 @@ function SoftphoneView({
   toaster = true,
   showLogin = true,
   persistHistory = true,
+  microphoneHelp,
   className,
   style,
 }: Omit<SoftphoneProps, 'softphone'>) {
@@ -490,6 +497,7 @@ function SoftphoneView({
             style={rootStyle}
           >
             <AnnouncerProvider>
+            <MicrophoneHelpContext.Provider value={microphoneHelp}>
             <CallAnnouncer onFailure={setFailure} />
             <StatusBar actions={slots.headerActions?.(ctx)} />
             {!loginView && <PushPrompt />}
@@ -581,6 +589,7 @@ function SoftphoneView({
             {toaster && <SoftphoneToaster theme={resolvedTheme} dir={i18n.dir} />}
             {/* Portal host for dialogs, menus and tooltips (stays inside theme scope / shadow root). */}
             <div ref={portalRef} data-slot="portal-host" />
+            </MicrophoneHelpContext.Provider>
             </AnnouncerProvider>
           </div>
         </TooltipProvider>

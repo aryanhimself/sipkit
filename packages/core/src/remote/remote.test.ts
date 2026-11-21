@@ -14,6 +14,7 @@ import {
   isExtensionWindowMessage,
   parseClientMessage,
   parseHostMessage,
+  pickPreferences,
   pickProvisioning,
   publicConfig,
   remoteMessage,
@@ -85,6 +86,17 @@ describe('protocol', () => {
     expect(resolveConfig(pub).voicemail.enabled).toBe(true);
   });
 
+  it('validates preference keys from updateConfig', () => {
+    expect(
+      pickPreferences({
+        audioProcessing: { noiseSuppression: false, evil: 1, voiceIsolation: 'yes' },
+        techPrefix: '9',
+        techPrefixMinDigits: 7.5,
+        password: 'p',
+      }),
+    ).toEqual({ audioProcessing: { noiseSuppression: false }, techPrefix: '9' });
+  });
+
   it('keeps only provisioning keys from updateConfig', () => {
     expect(
       pickProvisioning({ username: '1002', password: 'p', techPrefix: '9', registerHeaders: ['Authorization: Bearer t'], websocketUrls: 'nope' }),
@@ -133,12 +145,37 @@ describe('RemoteSoftphone over a host session', () => {
     expect(history?.list()).toHaveLength(1);
   });
 
-  it('applies only provisioning keys from a client', async () => {
+  it('applies provisioning and preference keys from a client, nothing else', async () => {
     const { softphone } = await createTestSoftphone();
     const { remote } = await hostWithClient(softphone);
-    await remote.updateConfig({ displayName: 'Agent', techPrefix: '9' });
+    await remote.updateConfig({ displayName: 'Agent', techPrefix: '9', autoAnswer: true } as never);
     expect(softphone.config.displayName).toBe('Agent');
-    expect(softphone.config.techPrefix).toBe('');
+    expect(softphone.config.techPrefix).toBe('9');
+    expect(softphone.config.autoAnswer).toBe(false);
+  });
+
+  it('sends preference changes to onPreferences without provisioning', async () => {
+    const { softphone } = await createTestSoftphone();
+    const [clientEnd, hostEnd] = createLoopbackPair();
+    const onUpdateConfig = vi.fn(async () => undefined);
+    const onPreferences = vi.fn(async () => undefined);
+    serveSoftphone(softphone, hostEnd, { host: { kind: 'extension', engine: 'fake' }, onUpdateConfig, onPreferences });
+    const remote = new RemoteSoftphone();
+    await remote.connect(clientEnd);
+    const audio = { noiseSuppression: false, echoCancellation: true, autoGainControl: true, voiceIsolation: true };
+    await remote.updateConfig({ audioProcessing: audio, techPrefixMinDigits: 7 });
+    expect(onPreferences).toHaveBeenCalledWith({ audioProcessing: audio, techPrefixMinDigits: 7 });
+    expect(onUpdateConfig).not.toHaveBeenCalled(); // no approval window for a settings switch
+    await remote.updateConfig({ username: '1002', techPrefix: 'x9' });
+    expect(onUpdateConfig).toHaveBeenCalledWith({ username: '1002' });
+    expect(onPreferences).toHaveBeenCalledTimes(1); // invalid prefix dropped
+  });
+
+  it('merges a partial audioProcessing change with the current settings', async () => {
+    const { softphone } = await createTestSoftphone({ config: { audioProcessing: { voiceIsolation: true } } });
+    const { remote } = await hostWithClient(softphone);
+    await remote.updateConfig({ audioProcessing: { noiseSuppression: false } });
+    expect(softphone.config.audioProcessing).toMatchObject({ noiseSuppression: false, voiceIsolation: true });
   });
 
   it('a second client attaching mid-call gets the same call (reload)', async () => {

@@ -4,7 +4,7 @@
  * dynamic content scripts, sender checks.
  */
 import type { SoftphoneConfigInput } from 'sipkit-core';
-import { pickProvisioning } from 'sipkit-core/remote';
+import { pickPreferences, pickProvisioning } from 'sipkit-core/remote';
 import {
   DEFAULT_ORIGINS,
   SECRETS_KEY,
@@ -51,6 +51,23 @@ export async function applyProvisioning(patch: SoftphoneConfigInput): Promise<vo
   if (p.registerHeaders) secrets.registerHeaders = p.registerHeaders;
   await chrome.storage.session.set({ [SECRETS_KEY]: secrets });
   await saveSettings({ ...settings, account });
+}
+
+/**
+ * A client changed a preference in the softphone's Settings (voice processing, dial prefix).
+ * Saved with the settings so the next start keeps it; no approval needed (no credentials).
+ */
+export async function savePreferences(patch: SoftphoneConfigInput, apply: () => Promise<void>): Promise<void> {
+  const prefs = pickPreferences(patch);
+  if (!Object.keys(prefs).length) return;
+  const settings = await getSettings();
+  const preferences = {
+    ...settings.preferences,
+    ...prefs,
+    ...(prefs.audioProcessing ? { audioProcessing: { ...settings.preferences.audioProcessing, ...prefs.audioProcessing } } : {}),
+  };
+  await saveSettings({ ...settings, preferences });
+  await apply();
 }
 
 const PENDING_PREFIX = 'sipkit:pending-provision:';

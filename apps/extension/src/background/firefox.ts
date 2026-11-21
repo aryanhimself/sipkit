@@ -11,6 +11,7 @@ import {
   getSettings,
   handleApproval,
   handleProvision,
+  savePreferences,
   initStorageAccess,
   isAllowedClient,
   isExtensionSender,
@@ -25,6 +26,7 @@ let controllerRef: ReturnType<typeof createController> | null = null;
 const host = createExtensionHost(
   {
     provision: (origin, trusted, patch: SoftphoneConfigInput) => handleProvision(origin, trusted, patch, pushConfig),
+    savePreferences: (patch: SoftphoneConfigInput) => savePreferences(patch, pushConfig),
     onSummary: (summary) => void controllerRef?.onSummary(summary),
     onCdr: (cdr) => void controllerRef?.onCdr(cdr),
   },

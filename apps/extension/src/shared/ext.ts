@@ -50,6 +50,8 @@ export type InternalMessage =
   | { type: 'sipkit:host-cdr'; cdr: Cdr }
   /** host → background: a client asked to provision credentials. */
   | { type: 'sipkit:provision'; origin: string; trusted: boolean; patch: unknown }
+  /** host → background: a client changed a preference (voice processing, dial prefix). */
+  | { type: 'sipkit:preferences'; patch: unknown }
   /** approve page → background: the user decided. */
   | { type: 'sipkit:approve'; origin: string; approved: boolean }
   /** e2e / mock engine only: run a mock helper on the host. */
